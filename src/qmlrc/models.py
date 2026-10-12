@@ -24,22 +24,26 @@ from sklearn.svm import SVC
 
 from .data import Split
 from .quantum import bloch_vectors, fidelity_kernel, iqp_states, projected_kernel
+from .shots import clip_to_psd, sample_bloch_vectors, sample_fidelity_kernel
 from .vqc import VariationalQuantumClassifier
 
 SCORING = "average_precision"
 
-# Grids as of run 2 (session 1). After run 1, every axis whose CV-selected value sat on the edge of
-# the grid in at least 2 of 5 seeds was extended by one value, for classical and quantum models
-# alike (see JOURNAL.md, 2026-10-12).
+# Grid-edge rule (DESIGN.md §4): an axis end whose CV-selected value sits on the edge in at least 2 of
+# 5 seeds is extended by one value, at most once, for classical and quantum models alike. Extensions:
+# session 1 (most axes), session 3 (SVM_C at both ends, VQC depth 1). See JOURNAL.md.
 
-SVM_C = [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]
+SVM_C = [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
 CLASS_WEIGHT = [None, "balanced"]
 # Bandwidths are multiplicative factors, like gamma = factor * 'scale' for the RBF kernel.
 RBF_GAMMA_FACTORS = [0.1, 0.3, 1.0, 3.0, 10.0]
 FIDELITY_SCALES = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
 PROJECTED_SCALES = [0.03, 0.1, 0.3, 1.0]
 PROJECTED_GAMMA_FACTORS = [0.1, 1.0, 10.0, 100.0]
-VQC_GRID = {"scale": [0.03, 0.1, 0.3, 1.0], "n_layers": [2, 4, 6]}
+VQC_GRID = {"scale": [0.03, 0.1, 0.3, 1.0], "n_layers": [1, 2, 4, 6]}
+# Twin VQCs of the entanglement ablation: same readout and training, they differ only in entanglement
+VQC_CONTROL = {"readout": "mean", "log_output_scale": True, "standardise_readout": True}
+SHOTS = (100, 1000, 10000)
 LOGREG_GRID = {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_weight": CLASS_WEIGHT}
 # class_weight is left out: it slows sklearn's histogram GBT ~10x on this data,
 # and reweighting matters little for a ranking metric such as AUPRC.
@@ -65,6 +69,7 @@ def grid_axes() -> dict[str, dict[str, list]]:
         "QSVM-fidelity-sep": {"scale": FIDELITY_SCALES, "C": SVM_C},
         "QSVM-projected-sep": {"scale": PROJECTED_SCALES, "gamma_factor": PROJECTED_GAMMA_FACTORS, "C": SVM_C},
         "VQC-sep": dict(VQC_GRID),
+        "VQC-mean": dict(VQC_GRID),
     }
 
 
@@ -131,12 +136,25 @@ def _precomputed_svm(kernels: dict, y_train, cv_splits) -> tuple[dict, GridSearc
     return best_key, best_search, n_configs
 
 
-def make_fidelity_qsvm(entangling: bool = True) -> Callable[[Split, int], ModelResult]:
+def _rng(seed: int, *keys: int) -> np.random.Generator:
+    return np.random.default_rng([seed, *keys])
+
+
+def make_fidelity_qsvm(entangling: bool = True, shots: int | None = None) -> Callable[[Split, int], ModelResult]:
+    """Fidelity-kernel SVM; with ``shots``, every kernel entry is a finite-shot estimate (qmlrc.shots)."""
+
     def run(split: Split, seed: int) -> ModelResult:
         states = {s: iqp_states(split.X_train, s, entangling=entangling) for s in FIDELITY_SCALES}
-        kernels = {s: fidelity_kernel(S, S) for s, S in states.items()}
+        kernels = {}
+        for i, (s, S) in enumerate(states.items()):
+            K = fidelity_kernel(S, S)
+            if shots:
+                K = clip_to_psd(sample_fidelity_kernel(K, shots, _rng(seed, shots, 0, i), symmetric=True))
+            kernels[s] = K
         scale, search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
         K_test = fidelity_kernel(iqp_states(split.X_test, scale, entangling=entangling), states[scale])
+        if shots:
+            K_test = sample_fidelity_kernel(K_test, shots, _rng(seed, shots, 1, FIDELITY_SCALES.index(scale)))
         best = search.best_estimator_
         return ModelResult(
             scores=best.decision_function(K_test),
@@ -156,9 +174,14 @@ def projected_gamma(bloch: np.ndarray, factor: float) -> float:
     return factor * base
 
 
-def make_projected_qsvm(entangling: bool = True) -> Callable[[Split, int], ModelResult]:
+def make_projected_qsvm(entangling: bool = True, shots: int | None = None) -> Callable[[Split, int], ModelResult]:
+    """Projected-kernel SVM; with ``shots``, Bloch vectors are finite-shot estimates (qmlrc.shots)."""
+
     def run(split: Split, seed: int) -> ModelResult:
-        blochs = {s: bloch_vectors(split.X_train, s, entangling=entangling) for s in PROJECTED_SCALES}
+        blochs = {}
+        for i, s in enumerate(PROJECTED_SCALES):
+            B = bloch_vectors(split.X_train, s, entangling=entangling)
+            blochs[s] = sample_bloch_vectors(B, shots, _rng(seed, shots, 0, i)) if shots else B
         kernels, gammas = {}, {}
         for s, B in blochs.items():
             for g in PROJECTED_GAMMA_FACTORS:
@@ -166,6 +189,8 @@ def make_projected_qsvm(entangling: bool = True) -> Callable[[Split, int], Model
                 kernels[(s, g)] = projected_kernel(B, B, gammas[(s, g)])
         (scale, factor), search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
         B_test = bloch_vectors(split.X_test, scale, entangling=entangling)
+        if shots:
+            B_test = sample_bloch_vectors(B_test, shots, _rng(seed, shots, 1, PROJECTED_SCALES.index(scale)))
         K_test = projected_kernel(B_test, blochs[scale], gammas[(scale, factor)])
         best = search.best_estimator_
         return ModelResult(
@@ -180,8 +205,10 @@ def make_projected_qsvm(entangling: bool = True) -> Callable[[Split, int], Model
 
 
 def make_vqc_runner(
-    steps: int = 150, grid: dict | None = None, entangling: bool = True
+    steps: int = 150, grid: dict | None = None, **options
 ) -> Callable[[Split, int], ModelResult]:
+    """Grid search over ``grid`` for a VariationalQuantumClassifier with fixed ``options``
+    (entangling, readout, log_output_scale, standardise_readout)."""
     grid = grid or VQC_GRID
 
     def run(split: Split, seed: int) -> ModelResult:
@@ -192,14 +219,14 @@ def make_vqc_runner(
         for cfg in configs:
             fold_scores = []
             for train_idx, val_idx in split.cv_splits:
-                model = VariationalQuantumClassifier(steps=steps, entangling=entangling, random_state=seed, **cfg)
+                model = VariationalQuantumClassifier(steps=steps, random_state=seed, **options, **cfg)
                 model.fit(split.X_train[train_idx], split.y_train[train_idx])
                 fold_scores.append(
                     average_precision_score(split.y_train[val_idx], model.decision_function(split.X_train[val_idx]))
                 )
             if np.mean(fold_scores) > best_score:
                 best_cfg, best_score = cfg, float(np.mean(fold_scores))
-        model = VariationalQuantumClassifier(steps=steps, entangling=entangling, random_state=seed, **best_cfg)
+        model = VariationalQuantumClassifier(steps=steps, random_state=seed, **options, **best_cfg)
         model.fit(split.X_train, split.y_train)
         return ModelResult(
             scores=model.decision_function(split.X_test),
@@ -255,13 +282,36 @@ def separable_models(vqc_steps: int = 150, vqc_grid: dict | None = None) -> list
                   "QSVM-fidelity with the MultiRZ (entangling) gates removed from the feature map"),
         ModelSpec("QSVM-projected-sep", "quantum-separable", make_projected_qsvm(entangling=False),
                   "QSVM-projected with the MultiRZ (entangling) gates removed from the feature map"),
-        ModelSpec("VQC-sep", "quantum-separable", make_vqc_runner(vqc_steps, vqc_grid, entangling=False),
-                  "VQC without entangling gates (Rot layers), readout mean_i <Z_i>"),
+        ModelSpec("VQC-sep", "quantum-separable",
+                  make_vqc_runner(vqc_steps, vqc_grid, entangling=False, **VQC_CONTROL),
+                  "VQC without entangling gates (Rot layers); standardised mean_i <Z_i> readout"),
     ]
 
 
-# entangled model -> its separable twin
-TWINS = {"QSVM-fidelity": "QSVM-fidelity-sep", "QSVM-projected": "QSVM-projected-sep", "VQC": "VQC-sep"}
+def vqc_control_models(vqc_steps: int = 150, vqc_grid: dict | None = None) -> list[ModelSpec]:
+    """Entangled VQC with exactly the readout and training of VQC-sep, so the pair differs only in
+    entanglement (session 3; replaces the session-2 VQC/VQC-sep pairing, which also differed in readout)."""
+    return [
+        ModelSpec("VQC-mean", "quantum", make_vqc_runner(vqc_steps, vqc_grid, entangling=True, **VQC_CONTROL),
+                  "VQC (StronglyEntanglingLayers) with standardised mean_i <Z_i> readout"),
+    ]
+
+
+def shot_models(shots: tuple[int, ...] = SHOTS) -> list[ModelSpec]:
+    """Quantum kernel SVMs whose kernels are finite-shot estimates, re-tuned on the noisy kernels."""
+    specs = []
+    for r in shots:
+        specs += [
+            ModelSpec(f"QSVM-fidelity@{r}", "quantum-shots", make_fidelity_qsvm(shots=r),
+                      f"QSVM-fidelity, every kernel entry estimated from {r} shots"),
+            ModelSpec(f"QSVM-projected@{r}", "quantum-shots", make_projected_qsvm(shots=r),
+                      f"QSVM-projected, every Pauli expectation estimated from {r} shots"),
+        ]
+    return specs
+
+
+# entangled model -> its separable twin (same readout and training)
+TWINS = {"QSVM-fidelity": "QSVM-fidelity-sep", "QSVM-projected": "QSVM-projected-sep", "VQC-mean": "VQC-sep"}
 
 
 def timed(run: Callable[[Split, int], ModelResult], split: Split, seed: int) -> ModelResult:

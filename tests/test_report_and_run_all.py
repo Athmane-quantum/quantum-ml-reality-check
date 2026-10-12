@@ -11,9 +11,13 @@ def test_quick_run_all_end_to_end(tmp_path: Path):
     text = (tmp_path / "RESULTS.md").read_text()
     assert DISCLAIMER in text
     for name in ["LogReg", "RBF-SVM", "GradBoost", "MLP", "QSVM-fidelity", "QSVM-projected", "VQC",
-                 "QSVM-fidelity-sep", "QSVM-projected-sep", "VQC-sep"]:
+                 "VQC-mean", "QSVM-fidelity-sep", "QSVM-projected-sep", "VQC-sep"]:
         assert f"| {name} |" in text
-    assert "## Entanglement ablation" in text and "## Geometric difference" in text
+    for section in ["## Entanglement ablation", "## Finite-shot quantum kernels", "## Geometric difference"]:
+        assert section in text
+    shots = read_csv(tmp_path / "experiments" / "creditcard_q8_shots" / "results.csv")
+    assert {r["model"] for r in shots} == {f"{m}@{r}" for m in ("QSVM-fidelity", "QSVM-projected")
+                                           for r in (100, 1000, 10000)}
     geo = read_csv(tmp_path / "experiments" / "geometric_difference" / "results.csv")
     assert len(geo) == 4 and all(r["g"] > 0 for r in geo)
     rows = read_csv(tmp_path / "experiments" / "creditcard_q8" / "results.csv")
@@ -23,7 +27,8 @@ def test_quick_run_all_end_to_end(tmp_path: Path):
     fingerprint = results_hash(
         rows
         + read_csv(tmp_path / "experiments" / "creditcard_full_classical" / "results.csv")
-        + read_csv(tmp_path / "experiments" / "creditcard_q8_separable" / "results.csv")
+        + read_csv(tmp_path / "experiments" / "creditcard_q8_ablation" / "results.csv")
+        + read_csv(tmp_path / "experiments" / "creditcard_q8_shots" / "results.csv")
     )
     assert main(["--quick", "--report-only", "--out-dir", str(tmp_path)]) == 0
     assert fingerprint in (tmp_path / "RESULTS.md").read_text()

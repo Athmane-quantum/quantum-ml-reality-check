@@ -2,16 +2,25 @@
 
 Circuit: ``IQPEmbedding(s * x)`` (same feature map as the quantum kernels, one
 repetition) followed by ``StronglyEntanglingLayers``; the model output is
-``logit = a * <Z_0> + b`` with trainable ``a`` and ``b``.
-
-Separable control (``entangling=False``): the embedding loses its MultiRZ gates and
-each layer is a ``Rot`` on every qubit with no CNOTs (same parameter count). A
-single-qubit readout would then see only one feature, so the output is
-``logit = a * mean_i <Z_i> + b``, the observable used by the separable classifier
-of Bowles et al. (arXiv:2403.07059). The two models therefore differ in readout as
-well as in entanglement. Training minimises a
+``logit = a * <Z_0> + b`` with trainable ``a`` and ``b``. Training minimises a
 class-weighted binary cross-entropy with Adam on mini-batches, using exact
 (backpropagated) gradients of the noiseless simulation.
+
+Options used by the entanglement ablation (DESIGN.md §4):
+
+* ``readout="mean"``: the output observable is mean_i <Z_i> (the observable of the
+  separable classifier of Bowles et al., arXiv:2403.07059) instead of <Z_0>.
+* ``log_output_scale=True``: the trainable output scale is a = exp(c) instead of a.
+  Small-bandwidth circuits produce readouts that vary by only a few hundredths, so a
+  linear ``a`` (starting at 1, moving ~0.05 per Adam step) cannot reach useful logits;
+  on a log scale it can.
+* ``standardise_readout=True``: the readout is standardised, (o - mean) / std, before the
+  affine map (a one-output batch normalisation): batch statistics during training, statistics
+  of the whole training set, frozen, for prediction. Without it a nearly constant readout makes
+  the output scale and the bias indistinguishable, and the scale never grows.
+* ``entangling=False``: the embedding loses its MultiRZ gates and each layer is a
+  ``Rot`` on every qubit with no CNOTs (same parameter count). Requires ``readout="mean"``,
+  since a single-qubit readout of a product state sees one feature only.
 """
 
 from __future__ import annotations
@@ -32,7 +41,10 @@ _PREDICT_CHUNK = 256
 
 
 @lru_cache(maxsize=None)
-def _functions(n_qubits: int, n_layers: int, n_repeats: int, entangling: bool = True):
+def _functions(
+    n_qubits: int, n_layers: int, n_repeats: int, entangling: bool = True,
+    readout: str = "z0", log_output_scale: bool = False, standardise_readout: bool = False,
+):
     """Jitted forward pass and Adam step for one circuit shape (compiled once)."""
     dev = qml.device("default.qubit", wires=n_qubits)
 
@@ -43,6 +55,12 @@ def _functions(n_qubits: int, n_layers: int, n_repeats: int, entangling: bool = 
         return qml.expval(qml.PauliZ(0))
 
     @qml.qnode(dev, interface="jax", diff_method="backprop")
+    def entangled_all(weights, x):
+        qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats)
+        qml.StronglyEntanglingLayers(weights, wires=range(n_qubits))
+        return [qml.expval(qml.PauliZ(q)) for q in range(n_qubits)]
+
+    @qml.qnode(dev, interface="jax", diff_method="backprop")
     def separable(weights, x):
         qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats, pattern=[])
         for layer in range(n_layers):
@@ -51,12 +69,20 @@ def _functions(n_qubits: int, n_layers: int, n_repeats: int, entangling: bool = 
         return [qml.expval(qml.PauliZ(q)) for q in range(n_qubits)]
 
     def circuit(weights, x):
-        if entangling:
+        if entangling and readout == "z0":
             return entangled(weights, x)
+        if entangling:
+            return jnp.mean(jnp.stack(entangled_all(weights, x)), axis=0)
         return jnp.mean(jnp.stack(separable(weights, x)), axis=0)
 
-    def logits(params, x):
-        return params["a"] * circuit(params["w"], x) + params["b"]
+    def logits(params, x, stats=None):
+        """``stats`` = (mean, std) of the readout; None means: use this batch's statistics."""
+        o = circuit(params["w"], x)
+        if standardise_readout:
+            mean, std = (jnp.mean(o), jnp.std(o)) if stats is None else stats
+            o = (o - mean) / (std + 1e-8)
+        a = jnp.exp(params["a"]) if log_output_scale else params["a"]
+        return a * o + params["b"]
 
     def loss(params, x, y, sample_weight):
         z = logits(params, x)
@@ -77,7 +103,7 @@ def _functions(n_qubits: int, n_layers: int, n_repeats: int, entangling: bool = 
         params = jax.tree_util.tree_map(lambda p, mh, vh: p - lr * mh / (jnp.sqrt(vh) + eps), params, m_hat, v_hat)
         return params, m, v, value
 
-    return jax.jit(logits), adam_step
+    return jax.jit(logits), adam_step, jax.jit(circuit)
 
 
 class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
@@ -93,6 +119,9 @@ class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
         learning_rate: float = 0.05,
         init_std: float = 0.1,
         entangling: bool = True,
+        readout: str = "z0",
+        log_output_scale: bool = False,
+        standardise_readout: bool = False,
         random_state: int = 0,
     ):
         self.n_layers = n_layers
@@ -103,6 +132,9 @@ class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
         self.learning_rate = learning_rate
         self.init_std = init_std
         self.entangling = entangling
+        self.readout = readout
+        self.log_output_scale = log_output_scale
+        self.standardise_readout = standardise_readout
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -111,6 +143,10 @@ class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
         n_qubits = X.shape[1]
         if n_qubits > MAX_QUBITS:
             raise ValueError(f"{n_qubits} features would need {n_qubits} qubits; the limit is {MAX_QUBITS}")
+        if self.readout not in ("z0", "mean"):
+            raise ValueError(f"unknown readout {self.readout!r}")
+        if not self.entangling and self.readout != "mean":
+            raise ValueError("a separable circuit needs readout='mean' (a <Z_0> readout would see one feature)")
         self.classes_ = np.array([0, 1])
         self.n_features_in_ = n_qubits
         rng = np.random.default_rng(self.random_state)
@@ -123,12 +159,12 @@ class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
         shape = qml.StronglyEntanglingLayers.shape(n_layers=self.n_layers, n_wires=n_qubits)
         params = {
             "w": jnp.asarray(rng.normal(scale=self.init_std, size=shape)),
-            "a": jnp.asarray(1.0),
+            "a": jnp.asarray(0.0 if self.log_output_scale else 1.0),  # output scale starts at 1 either way
             "b": jnp.asarray(0.0),
         }
         m = jax.tree_util.tree_map(jnp.zeros_like, params)
         v = jax.tree_util.tree_map(jnp.zeros_like, params)
-        _, adam_step = _functions(n_qubits, self.n_layers, self.n_repeats, self.entangling)
+        _, adam_step, _ = _functions(*self._shape(n_qubits))
 
         Xs = self.scale * X
         batch = min(self.batch_size, len(y))
@@ -142,20 +178,37 @@ class VariationalQuantumClassifier(ClassifierMixin, BaseEstimator):
             losses.append(float(value))
         self.params_ = jax.tree_util.tree_map(np.asarray, params)
         self.loss_curve_ = losses
+        self.readout_stats_ = None
+        if self.standardise_readout:  # freeze the readout statistics of the whole training set
+            o = self._readout(Xs)
+            self.readout_stats_ = (float(o.mean()), float(o.std()))
         return self
 
-    def decision_function(self, X):
-        X = self.scale * np.asarray(X, dtype=float)
-        logits, _ = _functions(self.n_features_in_, self.n_layers, self.n_repeats, self.entangling)
-        params = jax.tree_util.tree_map(jnp.asarray, self.params_)
-        out = []
-        # fixed-size chunks so the jitted forward pass compiles only once per shape
-        for start in range(0, len(X), _PREDICT_CHUNK):
-            chunk = X[start : start + _PREDICT_CHUNK]
+    def _readout(self, Xs: np.ndarray) -> np.ndarray:
+        _, _, circuit = _functions(*self._shape(self.n_features_in_))
+        w = jnp.asarray(self.params_["w"])
+        return np.concatenate([np.asarray(circuit(w, jnp.asarray(c)))[: len(c0)]
+                               for c, c0 in self._chunks(Xs)])
+
+    @staticmethod
+    def _chunks(Xs: np.ndarray):
+        # fixed-size chunks so the jitted functions compile only once per shape
+        for start in range(0, len(Xs), _PREDICT_CHUNK):
+            chunk = Xs[start : start + _PREDICT_CHUNK]
             pad = _PREDICT_CHUNK - len(chunk)
-            padded = np.vstack([chunk, np.zeros((pad, X.shape[1]))]) if pad else chunk
-            out.append(np.asarray(logits(params, jnp.asarray(padded)))[: len(chunk)])
-        return np.concatenate(out)
+            yield (np.vstack([chunk, np.zeros((pad, Xs.shape[1]))]) if pad else chunk), chunk
+
+    def decision_function(self, X):
+        Xs = self.scale * np.asarray(X, dtype=float)
+        logits, _, _ = _functions(*self._shape(self.n_features_in_))
+        params = jax.tree_util.tree_map(jnp.asarray, self.params_)
+        stats = None if self.readout_stats_ is None else tuple(jnp.asarray(v) for v in self.readout_stats_)
+        return np.concatenate([np.asarray(logits(params, jnp.asarray(padded), stats))[: len(chunk)]
+                               for padded, chunk in self._chunks(Xs)])
+
+    def _shape(self, n_qubits: int) -> tuple:
+        return (n_qubits, self.n_layers, self.n_repeats, self.entangling, self.readout, self.log_output_scale,
+                self.standardise_readout)
 
     def predict_proba(self, X):
         p = 1.0 / (1.0 + np.exp(-self.decision_function(X)))

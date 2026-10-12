@@ -54,7 +54,8 @@ def main(argv: list[str] | None = None) -> int:
     configs = ex.quick() if args.quick else ex.FULL
     by_name = {cfg.name: cfg for cfg in configs}
     q8_cfg, full_cfg = by_name["creditcard_q8"], by_name["creditcard_full_classical"]
-    sep_cfg, geo_cfg = by_name["creditcard_q8_separable"], by_name["geometric_difference"]
+    sep_cfg, geo_cfg = by_name["creditcard_q8_ablation"], by_name["geometric_difference"]
+    shots_cfg = by_name["creditcard_q8_shots"]
     conc_cfg = by_name["kernel_concentration"]
     paths = {cfg.name: root / "experiments" / cfg.name / "results.csv" for cfg in configs}
     log = lambda msg: print(msg, flush=True)  # noqa: E731
@@ -104,14 +105,16 @@ def main(argv: list[str] | None = None) -> int:
 
     q8_rows, full_rows = read_csv(paths[q8_cfg.name]), read_csv(paths[full_cfg.name])
     sep_rows, geo_rows = read_csv(paths[sep_cfg.name]), read_csv(paths[geo_cfg.name])
+    shot_rows = read_csv(paths[shots_cfg.name])
     conc_rows = read_csv(paths[conc_cfg.name])
-    fingerprint = results_hash(q8_rows + full_rows + sep_rows)
+    fingerprint = results_hash(q8_rows + full_rows + sep_rows + shot_rows)
     context = {
         **info,
         "q8_rows": q8_rows,
         "full_rows": full_rows,
         "sep_rows": sep_rows,
         "geo_rows": geo_rows,
+        "shot_rows": shot_rows,
         "conc_rows": conc_rows,
         "q8_config": q8_cfg,
         "conc_config": conc_cfg,

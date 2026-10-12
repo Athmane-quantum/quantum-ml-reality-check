@@ -1,0 +1,17 @@
+{
+  "command": "python -m qmlrc.run_all",
+  "date": "2026-10-12 18:48",
+  "commit": "70c374d",
+  "total_seconds": 786.1,
+  "experiment_seconds": {
+    "creditcard_q8": 349.7,
+    "creditcard_full_classical": 100.5,
+    "creditcard_q8_separable": 201.4,
+    "geometric_difference": 123.8,
+    "kernel_concentration": 10.7
+  },
+  "platform": "Linux x86_64, Python 3.13.16",
+  "cpus": 4,
+  "jobs": 4,
+  "versions": "numpy 2.5.4, scipy 1.18.1, scikit-learn 1.9.1, pennylane 0.45.1, jax 0.7.2"
+}

@@ -15,7 +15,10 @@ from sklearn.metrics import accuracy_score, average_precision_score, balanced_ac
 from .data import make_preprocessor, make_split, subsample
 from .experiments import BenchmarkConfig, ConcentrationConfig, GeometryConfig
 from .geometry import classical_kernels, decompose, minimum_geometric_difference
-from .models import ModelSpec, classical_models, projected_gamma, quantum_models, separable_models, timed
+from .models import (
+    ModelSpec, classical_models, projected_gamma, quantum_models, separable_models, shot_models, timed,
+    vqc_control_models,
+)
 from .quantum import bloch_vectors, fidelity_kernel, iqp_states, projected_kernel
 
 RESULT_FIELDS = [
@@ -38,8 +41,12 @@ def models_for(cfg: BenchmarkConfig) -> list[ModelSpec]:
         specs += classical_models()
     if "quantum" in cfg.families:
         specs += quantum_models(cfg.vqc_steps, cfg.vqc_grid)
+    if "quantum-control" in cfg.families:
+        specs += vqc_control_models(cfg.vqc_steps, cfg.vqc_grid)
     if "quantum-separable" in cfg.families:
         specs += separable_models(cfg.vqc_steps, cfg.vqc_grid)
+    if "quantum-shots" in cfg.families:
+        specs += shot_models(cfg.shots)
     return specs
 
 
@@ -55,8 +62,8 @@ _SINGLE_THREAD_ENV = {
 }
 _WORKER: dict = {}
 # rough relative costs, so the slowest tasks start first
-_COST = {"VQC": 10, "VQC-sep": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2, "QSVM-projected-sep": 2,
-         "QSVM-fidelity": 1, "QSVM-fidelity-sep": 1}
+_COST = {"VQC": 10, "VQC-mean": 10, "VQC-sep": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2,
+         "QSVM-projected-sep": 2, "QSVM-fidelity": 1, "QSVM-fidelity-sep": 1}
 
 
 def _init_worker(X_pool, y_pool, cores) -> None:

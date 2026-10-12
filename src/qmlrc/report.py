@@ -80,10 +80,10 @@ def per_seed_table(rows: list[dict], metric: str = "auprc") -> str:
     return "\n".join(lines)
 
 
-def params_table(rows: list[dict], family: str = "quantum") -> str:
+def params_table(rows: list[dict], family: str | None = "quantum") -> str:
     lines = ["| Model | Seed | Selected hyperparameters | CV AUPRC |", "|---|---|---|---|"]
     for r in rows:
-        if r["family"] == family:
+        if family is None or r["family"] == family:
             params = ", ".join(f"{k}={v}" for k, v in json.loads(r["best_params"]).items())
             lines.append(f"| {r['model']} | {r['seed']} | {params} | {r['cv_auprc']:.3f} |")
     return "\n".join(lines)
@@ -126,7 +126,7 @@ def edge_lines(rows: list[dict], axes: dict[str, dict[str, list]], min_seeds: in
     hits: dict[tuple, int] = defaultdict(int)
     for r in rows:
         params = json.loads(r["best_params"])
-        for axis, values in axes.get(r["model"], {}).items():
+        for axis, values in axes.get(r["model"].split("@")[0], {}).items():
             value = params.get(axis)
             if value == min(values):
                 hits[(r["model"], axis, "lowest", min(values))] += 1
@@ -207,6 +207,36 @@ def verdict_table(rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def shots_table(exact_rows: list[dict], shot_rows: list[dict]) -> str:
+    """AUPRC of each kernel model with exact kernels and with finite-shot kernels, plus the paired
+    verdict (DESIGN.md §6) of exact minus R shots."""
+    by = _by_model(exact_rows + shot_rows)
+    shots = sorted({int(m.split("@")[1]) for m in by if "@" in m})
+    bases = [m for m in by if "@" not in m and any(f"{m}@{r}" in by for r in shots)]
+    head = "| Model | Exact kernel | " + " | ".join(f"{r:,} shots" for r in shots) + " |"
+    lines = [head, "|---|---|" + "---|" * len(shots)]
+    for b in bases:
+        exact = {r_["seed"]: r_["auprc"] for r_ in by[b]}
+        cells = []
+        for r in shots:
+            rows = by.get(f"{b}@{r}", [])
+            noisy = {r_["seed"]: r_["auprc"] for r_ in rows}
+            seeds = sorted(set(exact) & set(noisy))
+            d = np.array([exact[s_] - noisy[s_] for s_ in seeds])
+            cells.append(f"{_ms([noisy[s_] for s_ in seeds])} ({verdict(d, 'exact', 'shots')})")
+        lines.append(f"| {b} | {_ms(list(exact.values()))} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
+def shot_cost_table(n_train: int, n_test: int, shots: list[int]) -> str:
+    from .shots import fidelity_shot_count, projected_shot_count
+
+    lines = ["| Model | " + " | ".join(f"{r:,} shots" for r in shots) + " |", "|---|" + "---|" * len(shots)]
+    lines.append("| QSVM-fidelity | " + " | ".join(f"{fidelity_shot_count(n_train, n_test, r):.2e}" for r in shots) + " |")
+    lines.append("| QSVM-projected | " + " | ".join(f"{projected_shot_count(n_train, n_test, r):.2e}" for r in shots) + " |")
+    return "\n".join(lines)
+
+
 def concentration_table(rows: list[dict]) -> str:
     lines = [
         "| Qubits | Bandwidth s | Fidelity kernel: mean off-diag. | Fidelity kernel: std off-diag. | Haar-random mean 1/2^n | Projected kernel (gamma=1): std off-diag. |",
@@ -239,9 +269,12 @@ def load_reading(path: Path, current_hash: str) -> str:
 def render_results(context: dict) -> str:
     q8, full, conc = context["q8_rows"], context["full_rows"], context["conc_rows"]
     sep, geo = context["sep_rows"], context["geo_rows"]
-    n_geo = int(round(geo[0]["sqrt_n"] ** 2)) if geo else 0
     cfg = context["q8_config"]
     conc_cfg = context["conc_config"]
+    n_geo = int(round(geo[0]["sqrt_n"] ** 2)) if geo else 0
+    n_test = int(q8[0]["n_test"])
+    n_train = cfg.n_samples - n_test
+    shots_list = sorted({int(r["model"].split("@")[1]) for r in context["shot_rows"]})
     if cfg.dataset == "creditcard":
         source = "credit-card fraud, OpenML dataset 1597 (ULB / Worldline, 284,807 transactions, 492 frauds)"
         n_raw = 29
@@ -249,7 +282,6 @@ def render_results(context: dict) -> str:
         source = f"synthetic smoke-test data (`{cfg.dataset}`), not a real benchmark"
         n_raw = "all"
     pos = np.mean([r["test_positive_rate"] for r in q8])
-    n_test = int(q8[0]["n_test"])
     parts = [
         "# Results — benchmark v0",
         "",
@@ -319,9 +351,13 @@ def render_results(context: dict) -> str:
         "",
         *(edge_lines(q8, context["grid_axes"]) or ["- None."]),
         "",
-        "Entanglement ablation (separable models):",
+        "Entanglement ablation:",
         "",
         *(edge_lines(sep, context["grid_axes"]) or ["- None."]),
+        "",
+        "Finite-shot kernels:",
+        "",
+        *(edge_lines(context["shot_rows"], context["grid_axes"]) or ["- None."]),
         "",
         f"Reference run ({n_raw} features, classical only):",
         "",
@@ -329,21 +365,35 @@ def render_results(context: dict) -> str:
         "",
         "## Entanglement ablation",
         "",
-        "The same three quantum models with their entangling gates removed (`creditcard_q8_separable`): the IQP "
-        "feature map without its MultiRZ gates, and for the VQC, layers of single-qubit rotations without CNOTs. "
-        "Same rows, splits, folds and hyperparameter grids. This is the test of Bowles et al. (arXiv:2403.07059): "
-        "if the separable twin does as well, the model's performance does not come from entanglement. Caveat: "
-        "the separable VQC reads out the mean of ⟨Z_i⟩ over all qubits (as in Bowles et al.), because a "
-        "single-qubit readout of a product state would see only one feature; the VQC pair therefore also "
-        "differs in readout.",
+        "Twins that differ only in entanglement (`creditcard_q8_ablation`), in the spirit of Bowles et al. "
+        "(arXiv:2403.07059). The kernel twins use the same IQP map with its MultiRZ gates removed. VQC-sep "
+        "(single-qubit rotations, no CNOTs) is compared with VQC-mean, an entangled VQC with exactly the same "
+        "readout and training (standardised mean of ⟨Z_i⟩, log-scale output weight). The main table's VQC reads "
+        "⟨Z_0⟩ only and is not part of this comparison. Same rows, splits, folds and grids as the main table. "
+        "If a twin without entanglement does as well, the model's performance does not come from entanglement.",
         "",
         summary_table(sep),
         "",
         ablation_table(q8, sep, context["twins"]),
         "",
-        "Selected hyperparameters of the separable models:",
+        "Selected hyperparameters:",
         "",
-        params_table(sep, family="quantum-separable"),
+        params_table(sep, family=None),
+        "",
+        "## Finite-shot quantum kernels",
+        "",
+        "The same two kernel SVMs, with every kernel value estimated from a finite number of measurements, as a "
+        "quantum computer would (`creditcard_q8_shots`; estimators in `qmlrc/shots.py`). Fidelity kernel: each "
+        "entry is the frequency of the all-zeros outcome of the overlap circuit. Projected kernel: each Pauli "
+        "expectation is estimated from that many shots. The models are re-tuned on the noisy kernels, with the "
+        "same grids. In each cell, the verdict compares exact and finite-shot kernels with the DESIGN.md §6 rule.",
+        "",
+        shots_table(q8, context["shot_rows"]),
+        "",
+        f"Circuit executions needed to estimate the kernels of *one* fitted model ({n_train:,} training and "
+        f"{n_test:,} test rows, one bandwidth), before any hyperparameter search:",
+        "",
+        shot_cost_table(n_train, n_test, shots_list),
         "",
         "## Geometric difference (Huang et al.)",
         "",

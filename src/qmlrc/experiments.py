@@ -18,6 +18,7 @@ class BenchmarkConfig:
     families: tuple[str, ...] = ("classical", "quantum")
     vqc_steps: int = 150
     vqc_grid: dict | None = None
+    shots: tuple[int, ...] = ()  # for the "quantum-shots" family
     description: str = ""
 
 
@@ -64,19 +65,30 @@ CREDITCARD_FULL_CLASSICAL = BenchmarkConfig(
     ),
 )
 
-CREDITCARD_Q8_SEPARABLE = replace(
+CREDITCARD_Q8_ABLATION = replace(
     CREDITCARD_Q8,
-    name="creditcard_q8_separable",
-    families=("quantum-separable",),
+    name="creditcard_q8_ablation",
+    families=("quantum-control", "quantum-separable"),
     description=(
-        "Entanglement ablation: the three quantum models with their entangling gates removed, "
-        "on exactly the same rows, splits, folds and grids as creditcard_q8."
+        "Entanglement ablation: the quantum models with their entangling gates removed, plus VQC-mean, the "
+        "entangled twin of VQC-sep; same rows, splits, folds and grids as creditcard_q8."
+    ),
+)
+
+CREDITCARD_Q8_SHOTS = replace(
+    CREDITCARD_Q8,
+    name="creditcard_q8_shots",
+    families=("quantum-shots",),
+    shots=(100, 1000, 10000),
+    description=(
+        "Quantum kernel SVMs with finite-shot kernel estimates (100, 1,000 and 10,000 shots), re-tuned on the "
+        "noisy kernels; same rows, splits, folds and grids as creditcard_q8."
     ),
 )
 
 GEOMETRIC_DIFFERENCE = GeometryConfig(
     name="geometric_difference",
-    benchmarks=("creditcard_q8", "creditcard_q8_separable"),
+    benchmarks=("creditcard_q8", "creditcard_q8_ablation"),
     description=(
         "Huang et al. geometric difference between each tuned quantum kernel and classical kernels, "
         "per seed, on the training rows of creditcard_q8."
@@ -92,7 +104,10 @@ KERNEL_CONCENTRATION = ConcentrationConfig(
     ),
 )
 
-FULL = [CREDITCARD_Q8, CREDITCARD_FULL_CLASSICAL, CREDITCARD_Q8_SEPARABLE, GEOMETRIC_DIFFERENCE, KERNEL_CONCENTRATION]
+FULL = [
+    CREDITCARD_Q8, CREDITCARD_FULL_CLASSICAL, CREDITCARD_Q8_ABLATION, CREDITCARD_Q8_SHOTS,
+    GEOMETRIC_DIFFERENCE, KERNEL_CONCENTRATION,
+]
 
 
 def quick(configs=FULL):
