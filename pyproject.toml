@@ -20,6 +20,7 @@ dependencies = [
     "pennylane-lightning==0.45.0",
     "jax==0.7.2",
     "jaxlib==0.7.2",
+    "threadpoolctl==3.7.0",
 ]
 
 [project.optional-dependencies]

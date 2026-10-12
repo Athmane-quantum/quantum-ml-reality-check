@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import multiprocessing as mp
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Callable
 
 import numpy as np
@@ -36,33 +39,79 @@ def models_for(cfg: BenchmarkConfig) -> list[ModelSpec]:
     return specs
 
 
-def run_benchmark(cfg: BenchmarkConfig, X_pool, y_pool, log: Callable[[str], None] = print) -> list[dict]:
-    rows = []
-    specs = models_for(cfg)
-    for seed in cfg.seeds:
-        split = make_split(
+# Each (seed, model) task runs in its own single-threaded worker process. Timings are therefore
+# single-thread wall-clock times, comparable across models, and several tasks run side by side.
+_SINGLE_THREAD_ENV = {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "XLA_FLAGS": "--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1",
+}
+_WORKER: dict = {}
+# rough relative costs, so the slowest tasks start first
+_COST = {"VQC": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2, "QSVM-fidelity": 1}
+
+
+def _init_worker(X_pool, y_pool) -> None:
+    from threadpoolctl import threadpool_limits
+
+    threadpool_limits(1)
+    _WORKER["pool"] = (X_pool, y_pool)
+    _WORKER["splits"] = {}
+
+
+def _run_task(cfg: BenchmarkConfig, seed: int, model: str) -> dict:
+    X_pool, y_pool = _WORKER["pool"]
+    if seed not in _WORKER["splits"]:
+        _WORKER["splits"][seed] = make_split(
             X_pool, y_pool, n_samples=cfg.n_samples, positive_fraction=cfg.positive_fraction,
             test_size=cfg.test_size, n_components=cfg.n_components, n_folds=cfg.n_folds, seed=seed,
         )
-        for spec in specs:
-            result = timed(spec.run, split, seed)
-            row = {
-                "experiment": cfg.name,
-                "seed": seed,
-                "model": spec.name,
-                "family": spec.family,
-                **metrics(split.y_test, result.scores, result.y_pred),
-                "test_positive_rate": float(split.y_test.mean()),
-                "n_test": int(len(split.y_test)),
-                "cv_auprc": result.cv_score,
-                "n_configs": result.n_configs,
-                "seconds": result.seconds,
-                "best_params": json.dumps(result.best_params, sort_keys=True),
-            }
-            rows.append(row)
-            log(f"  [{cfg.name}] seed={seed} {spec.name:<15} AUPRC={row['auprc']:.3f} "
-                f"acc={row['accuracy']:.3f} ({result.seconds:.1f}s, {result.n_configs} configs)")
-    return rows
+    split = _WORKER["splits"][seed]
+    spec = {s.name: s for s in models_for(cfg)}[model]
+    result = timed(spec.run, split, seed)
+    return {
+        "experiment": cfg.name,
+        "seed": seed,
+        "model": spec.name,
+        "family": spec.family,
+        **metrics(split.y_test, result.scores, result.y_pred),
+        "test_positive_rate": float(split.y_test.mean()),
+        "n_test": int(len(split.y_test)),
+        "cv_auprc": result.cv_score,
+        "n_configs": result.n_configs,
+        "seconds": result.seconds,
+        "best_params": json.dumps(result.best_params, sort_keys=True),
+    }
+
+
+def run_benchmark(
+    cfg: BenchmarkConfig, X_pool, y_pool, log: Callable[[str], None] = print, jobs: int = 1
+) -> list[dict]:
+    """Run every (seed, model) pair in ``jobs`` single-threaded worker processes."""
+    names = [s.name for s in models_for(cfg)]
+    tasks = sorted(((seed, m) for seed in cfg.seeds for m in names), key=lambda t: -_COST.get(t[1], 0))
+    saved = {k: os.environ.get(k) for k in _SINGLE_THREAD_ENV}
+    os.environ.update(_SINGLE_THREAD_ENV)  # inherited by the spawned workers
+    try:
+        with ProcessPoolExecutor(
+            max_workers=jobs, mp_context=mp.get_context("spawn"),
+            initializer=_init_worker, initargs=(X_pool, y_pool),
+        ) as pool:
+            futures = {pool.submit(_run_task, cfg, seed, m): (seed, m) for seed, m in tasks}
+            rows = []
+            for future in as_completed(futures):
+                row = future.result()
+                rows.append(row)
+                log(f"  [{cfg.name}] seed={row['seed']} {row['model']:<15} AUPRC={row['auprc']:.3f} "
+                    f"acc={row['accuracy']:.3f} ({row['seconds']:.1f}s, {row['n_configs']} configs)")
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    return sorted(rows, key=lambda r: (r["seed"], names.index(r["model"])))
 
 
 CONCENTRATION_FIELDS = [

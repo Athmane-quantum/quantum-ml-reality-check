@@ -1,6 +1,6 @@
 """Reproduce every result in RESULTS.md from scratch.
 
-    python -m qmlrc.run_all            # full benchmark (~15 min on a 4-thread CPU), rewrites results + RESULTS.md
+    python -m qmlrc.run_all            # full benchmark (about 10 min with 4 CPU cores), rewrites results + RESULTS.md
     python -m qmlrc.run_all --quick    # synthetic smoke test (~1 min), writes to --out-dir only
     python -m qmlrc.run_all --report-only   # rebuild RESULTS.md from the committed CSVs
 
@@ -42,9 +42,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quick", action="store_true", help="tiny synthetic run for smoke tests")
     parser.add_argument("--report-only", action="store_true", help="skip computation, rebuild RESULTS.md from CSVs")
     parser.add_argument("--out-dir", default=".", help="repository root to write into (default: current directory)")
+    parser.add_argument("--jobs", type=int, default=None,
+                        help="parallel single-threaded workers (default: 1 with --quick, else min(4, CPUs))")
     args = parser.parse_args(argv)
 
     root = Path(args.out_dir).resolve()
+    jobs = args.jobs or (1 if args.quick else min(4, os.cpu_count() or 1))
     configs = ex.quick() if args.quick else ex.FULL
     q8_cfg, full_cfg, conc_cfg = configs
     paths = {cfg.name: root / "experiments" / cfg.name / "results.csv" for cfg in configs}
@@ -61,16 +64,17 @@ def main(argv: list[str] | None = None) -> int:
             X, y = pools[cfg.dataset]
             log(f"Running {cfg.name}: {cfg.description}")
             if isinstance(cfg, ex.BenchmarkConfig):
-                write_csv(run_benchmark(cfg, X, y, log), RESULT_FIELDS, paths[cfg.name])
+                write_csv(run_benchmark(cfg, X, y, log, jobs=jobs), RESULT_FIELDS, paths[cfg.name])
             else:
                 write_csv(run_concentration(cfg, X, y, log), CONCENTRATION_FIELDS, paths[cfg.name])
         info = {
-            "command": "python -m qmlrc.run_all" + (" --quick" if args.quick else ""),
+            "command": "python -m qmlrc.run_all" + (" --quick" if args.quick else "") + (f" --jobs {args.jobs}" if args.jobs else ""),
             "date": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M"),
             "commit": _commit(root),
             "total_seconds": round(time.perf_counter() - start, 1),
             "platform": f"{platform.system()} {platform.machine()}, Python {platform.python_version()}",
             "cpus": os.cpu_count(),
+            "jobs": jobs,
             "versions": ", ".join(f"{p} {version(p)}" for p in PACKAGES),
         }
         info_path.write_text(json.dumps(info, indent=2) + "\n")

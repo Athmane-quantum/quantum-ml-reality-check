@@ -28,14 +28,18 @@ from .vqc import VariationalQuantumClassifier
 
 SCORING = "average_precision"
 
+# Grids as of run 2 (session 1). After run 1, every axis whose CV-selected value sat on the edge of
+# the grid in at least 2 of 5 seeds was extended by one value, for classical and quantum models
+# alike (see JOURNAL.md, 2026-10-12).
+
 SVM_C = [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]
 CLASS_WEIGHT = [None, "balanced"]
 # Bandwidths are multiplicative factors, like gamma = factor * 'scale' for the RBF kernel.
 RBF_GAMMA_FACTORS = [0.1, 0.3, 1.0, 3.0, 10.0]
-FIDELITY_SCALES = [0.05, 0.1, 0.2, 0.5, 1.0]
-PROJECTED_SCALES = [0.1, 0.3, 1.0]
-PROJECTED_GAMMA_FACTORS = [0.1, 1.0, 10.0]
-VQC_GRID = {"scale": [0.1, 0.3, 1.0], "n_layers": [2, 4]}
+FIDELITY_SCALES = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
+PROJECTED_SCALES = [0.03, 0.1, 0.3, 1.0]
+PROJECTED_GAMMA_FACTORS = [0.1, 1.0, 10.0, 100.0]
+VQC_GRID = {"scale": [0.03, 0.1, 0.3, 1.0], "n_layers": [2, 4, 6]}
 
 
 @dataclass
@@ -178,7 +182,7 @@ def classical_models() -> list[ModelSpec]:
             "LogReg", "classical",
             _sklearn_grid(
                 LogisticRegression(max_iter=5000),
-                {"C": [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_weight": CLASS_WEIGHT},
+                {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_weight": CLASS_WEIGHT},
             ),
             "L2 logistic regression; C x class_weight",
         ),
@@ -191,9 +195,9 @@ def classical_models() -> list[ModelSpec]:
                 # and reweighting matters little for a ranking metric such as AUPRC.
                 {
                     "learning_rate": [0.03, 0.1, 0.3],
-                    "max_leaf_nodes": [7, 31],
-                    "min_samples_leaf": [5, 20],
-                    "l2_regularization": [0.0, 1.0],
+                    "max_leaf_nodes": [7, 31, 63],
+                    "min_samples_leaf": [5, 20, 50],
+                    "l2_regularization": [0.0, 1.0, 10.0],
                 },
             ),
             "Histogram gradient-boosted trees; learning_rate x max_leaf_nodes x min_samples_leaf x l2",
@@ -202,7 +206,7 @@ def classical_models() -> list[ModelSpec]:
             "MLP", "classical",
             _sklearn_grid(
                 MLPClassifier(max_iter=2000),
-                {"hidden_layer_sizes": [(16,), (64,), (32, 32)], "alpha": [1e-4, 1e-2, 1.0]},
+                {"hidden_layer_sizes": [(16,), (64,), (32, 32)], "alpha": [1e-4, 1e-2, 1.0, 10.0]},
             ),
             "Small multilayer perceptron (Adam); width x L2 penalty",
         ),

@@ -59,7 +59,7 @@ def _by_model(rows: list[dict]) -> dict[str, list[dict]]:
 
 def summary_table(rows: list[dict]) -> str:
     lines = [
-        "| Model | Family | AUPRC (test) | Accuracy | Balanced acc. | CV AUPRC | Configs tried | Time / seed (s) |",
+        "| Model | Family | AUPRC (test) | Accuracy | Balanced acc. | CV AUPRC | Configs tried | Time / seed (s, 1 thread) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for model, rs in _by_model(rows).items():
@@ -173,8 +173,9 @@ def render_results(context: dict) -> str:
         "",
         f"- Command: `{context['command']}`",
         f"- Date (UTC): {context['date']} · git commit: `{context['commit']}` · total wall-clock: {context['total_seconds'] / 60:.1f} min",
-        f"- Machine: {context['platform']}, {context['cpus']} CPU threads visible. Times are wall-clock on this machine "
-        "and are **classical simulation times**, not quantum hardware times.",
+        f"- Machine: {context['platform']}, {context['cpus']} CPU threads visible. Each (seed, model) task ran in its own "
+        f"single-threaded process, {context.get('jobs', 1)} at a time, so the times below are single-thread wall-clock times "
+        "on this machine. For quantum models they are **classical simulation times**, not quantum hardware times.",
         f"- Versions: {context['versions']}",
         f"- Seeds: {', '.join(str(s) for s in cfg.seeds)} (each seed redraws the subsample, the split, the CV folds and the model initialisation).",
         f"- Results fingerprint: `{context['hash']}`",

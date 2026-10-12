@@ -5,8 +5,8 @@ from qmlrc.benchmark import metrics
 from qmlrc.models import classical_models, quantum_models, timed
 
 SPECS = classical_models() + quantum_models(vqc_steps=5, vqc_grid={"scale": [0.3], "n_layers": [1, 2]})
-EXPECTED_CONFIGS = {"LogReg": 14, "RBF-SVM": 60, "GradBoost": 24, "MLP": 9,
-                    "QSVM-fidelity": 60, "QSVM-projected": 108, "VQC": 2}
+EXPECTED_CONFIGS = {"LogReg": 16, "RBF-SVM": 60, "GradBoost": 81, "MLP": 12,
+                    "QSVM-fidelity": 72, "QSVM-projected": 192, "VQC": 2}
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=[s.name for s in SPECS])
@@ -25,3 +25,16 @@ def test_metrics_on_perfect_and_random_rankings():
     y = np.array([0, 0, 0, 1, 1])
     assert metrics(y, np.array([0, 1, 2, 3, 4.0]), (np.arange(5) > 2).astype(int))["auprc"] == 1.0
     assert metrics(y, np.zeros(5), np.zeros(5, dtype=int))["accuracy"] == 0.6
+
+
+def test_results_do_not_depend_on_number_of_workers(pool):
+    from qmlrc.benchmark import run_benchmark
+    from qmlrc.experiments import BenchmarkConfig
+
+    X, y = pool
+    cfg = BenchmarkConfig(name="tiny", dataset="synthetic", n_samples=120, positive_fraction=0.2,
+                          n_components=3, seeds=(0, 1), families=("classical",))
+    one = run_benchmark(cfg, X, y, log=lambda _: None, jobs=1)
+    two = run_benchmark(cfg, X, y, log=lambda _: None, jobs=2)
+    key = lambda r: (r["seed"], r["model"], round(r["auprc"], 12), r["best_params"])  # noqa: E731
+    assert [key(r) for r in one] == [key(r) for r in two]
