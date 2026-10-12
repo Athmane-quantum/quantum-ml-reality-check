@@ -3,7 +3,7 @@ geometric_difference,0,QSVM-fidelity,4.667554,0.124746,37.416574,0.029766,0.0010
 geometric_difference,0,QSVM-projected,4.019014,0.107413,37.416574,0.026520,0.001000,gaussian x0.25,"{""C"": 10.0, ""class_weight"": ""balanced"", ""gamma_factor"": 1.0, ""scale"": 0.1}"
 geometric_difference,0,QSVM-fidelity-sep,4.412506,0.117929,37.416574,0.028587,0.001000,gaussian x0.25,"{""C"": 100.0, ""class_weight"": ""balanced"", ""scale"": 0.05}"
 geometric_difference,0,QSVM-projected-sep,1.344155,0.035924,37.416574,0.039799,0.010000,gaussian x2,"{""C"": 0.01, ""class_weight"": ""none"", ""gamma_factor"": 100.0, ""scale"": 0.1}"
-geometric_difference,1,QSVM-fidelity,4.649285,0.124257,37.416574,0.031223,0.001000,gaussian x0.25,"{""C"": 0.01, ""class_weight"": ""balanced"", ""scale"": 0.02}"
+geometric_difference,1,QSVM-fidelity,4.649285,0.124257,37.416574,0.031223,0.001000,gaussian x0.25,"{""C"": 0.001, ""class_weight"": ""balanced"", ""scale"": 0.02}"
 geometric_difference,1,QSVM-projected,1.677395,0.044830,37.416574,0.014788,0.001000,gaussian x0.25,"{""C"": 1.0, ""class_weight"": ""none"", ""gamma_factor"": 10.0, ""scale"": 0.1}"
 geometric_difference,1,QSVM-fidelity-sep,2.628881,0.070260,37.416574,0.020200,0.001000,gaussian x0.25,"{""C"": 1.0, ""class_weight"": ""none"", ""scale"": 0.2}"
 geometric_difference,1,QSVM-projected-sep,1.613877,0.043133,37.416574,0.012787,0.001000,gaussian x0.25,"{""C"": 1.0, ""class_weight"": ""none"", ""gamma_factor"": 10.0, ""scale"": 0.1}"
