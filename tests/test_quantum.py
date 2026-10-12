@@ -9,12 +9,14 @@ H1 = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
 PAULI = {"X": np.array([[0, 1], [1, 0]]), "Y": np.array([[0, -1j], [1j, 0]]), "Z": np.diag([1.0, -1.0])}
 
 
-def reference_iqp_state(x, n_repeats):
+def reference_iqp_state(x, n_repeats, entangling=True):
     """Independent NumPy implementation of PennyLane's IQPEmbedding (wire 0 = most significant bit)."""
     n = len(x)
     bits = (np.arange(2**n)[:, None] >> np.arange(n)[::-1]) & 1
     s = 1 - 2 * bits  # Z eigenvalues
-    phase = (s * x).sum(1) + sum(x[i] * x[j] * s[:, i] * s[:, j] for i in range(n) for j in range(i + 1, n))
+    phase = (s * x).sum(1)
+    if entangling:
+        phase = phase + sum(x[i] * x[j] * s[:, i] * s[:, j] for i in range(n) for j in range(i + 1, n))
     diag = np.exp(-0.5j * phase)
     Hn = reduce(np.kron, [H1] * n)
     psi = np.zeros(2**n, dtype=complex)
@@ -84,3 +86,27 @@ def test_tiny_bandwidth_makes_kernel_constant(rng):
 def test_qubit_limit_is_enforced(rng):
     with pytest.raises(ValueError):
         iqp_states(rng.normal(size=(2, 11)), scale=1.0)
+
+
+def test_separable_states_match_reference_and_are_product_states(rng):
+    X = rng.normal(size=(4, 3))
+    S = iqp_states(X, scale=0.8, entangling=False)
+    for x, psi in zip(X, S):
+        assert abs(abs(np.vdot(reference_iqp_state(0.8 * x, 2, entangling=False), psi)) - 1.0) < 1e-10
+    B = bloch_vectors(X, scale=0.8, entangling=False).reshape(4, 3, 3)  # (sample, XYZ, qubit)
+    np.testing.assert_allclose(np.linalg.norm(B, axis=1), 1.0, atol=1e-10)  # every qubit stays pure
+
+
+def test_separable_fidelity_kernel_is_product_of_one_qubit_kernels(rng):
+    X = rng.normal(size=(5, 3))
+    S = iqp_states(X, scale=0.6, entangling=False)
+    K = fidelity_kernel(S, S)
+    one = [fidelity_kernel(iqp_states(X[:, [q]], 0.6, entangling=False), iqp_states(X[:, [q]], 0.6, entangling=False))
+           for q in range(3)]
+    np.testing.assert_allclose(K, one[0] * one[1] * one[2], atol=1e-10)
+
+
+def test_entangling_gates_change_the_state(rng):
+    X = rng.normal(size=(1, 3))
+    a, b = iqp_states(X, 1.0)[0], iqp_states(X, 1.0, entangling=False)[0]
+    assert abs(abs(np.vdot(a, b)) - 1.0) > 1e-3

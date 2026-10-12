@@ -22,6 +22,17 @@ class BenchmarkConfig:
 
 
 @dataclass(frozen=True)
+class GeometryConfig:
+    """Geometric difference (Huang et al.) of each quantum kernel model, at its CV-selected
+    settings, against a list of classical kernels, on the training rows of every seed."""
+
+    name: str
+    benchmarks: tuple[str, ...]  # benchmark experiments whose kernel models are analysed
+    models: tuple[str, ...] = ("QSVM-fidelity", "QSVM-projected", "QSVM-fidelity-sep", "QSVM-projected-sep")
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class ConcentrationConfig:
     name: str
     dataset: str
@@ -53,6 +64,25 @@ CREDITCARD_FULL_CLASSICAL = BenchmarkConfig(
     ),
 )
 
+CREDITCARD_Q8_SEPARABLE = replace(
+    CREDITCARD_Q8,
+    name="creditcard_q8_separable",
+    families=("quantum-separable",),
+    description=(
+        "Entanglement ablation: the three quantum models with their entangling gates removed, "
+        "on exactly the same rows, splits, folds and grids as creditcard_q8."
+    ),
+)
+
+GEOMETRIC_DIFFERENCE = GeometryConfig(
+    name="geometric_difference",
+    benchmarks=("creditcard_q8", "creditcard_q8_separable"),
+    description=(
+        "Huang et al. geometric difference between each tuned quantum kernel and classical kernels, "
+        "per seed, on the training rows of creditcard_q8."
+    ),
+)
+
 KERNEL_CONCENTRATION = ConcentrationConfig(
     name="kernel_concentration",
     dataset="creditcard",
@@ -62,7 +92,7 @@ KERNEL_CONCENTRATION = ConcentrationConfig(
     ),
 )
 
-FULL = [CREDITCARD_Q8, CREDITCARD_FULL_CLASSICAL, KERNEL_CONCENTRATION]
+FULL = [CREDITCARD_Q8, CREDITCARD_FULL_CLASSICAL, CREDITCARD_Q8_SEPARABLE, GEOMETRIC_DIFFERENCE, KERNEL_CONCENTRATION]
 
 
 def quick(configs=FULL):
@@ -72,6 +102,8 @@ def quick(configs=FULL):
         if isinstance(cfg, BenchmarkConfig):
             out.append(replace(cfg, dataset="synthetic", n_samples=300, seeds=(0,), vqc_steps=10,
                                vqc_grid={"scale": [0.3], "n_layers": [1]}))
-        else:
+        elif isinstance(cfg, ConcentrationConfig):
             out.append(replace(cfg, dataset="synthetic", n_samples=60, qubits=(2, 4)))
+        else:
+            out.append(cfg)
     return out

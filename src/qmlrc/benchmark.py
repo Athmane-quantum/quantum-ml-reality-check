@@ -6,14 +6,16 @@ import json
 import multiprocessing as mp
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from contextlib import contextmanager
 from typing import Callable
 
 import numpy as np
 from sklearn.metrics import accuracy_score, average_precision_score, balanced_accuracy_score
 
 from .data import make_preprocessor, make_split, subsample
-from .experiments import BenchmarkConfig, ConcentrationConfig
-from .models import ModelSpec, classical_models, quantum_models, timed
+from .experiments import BenchmarkConfig, ConcentrationConfig, GeometryConfig
+from .geometry import classical_kernels, decompose, minimum_geometric_difference
+from .models import ModelSpec, classical_models, projected_gamma, quantum_models, separable_models, timed
 from .quantum import bloch_vectors, fidelity_kernel, iqp_states, projected_kernel
 
 RESULT_FIELDS = [
@@ -36,6 +38,8 @@ def models_for(cfg: BenchmarkConfig) -> list[ModelSpec]:
         specs += classical_models()
     if "quantum" in cfg.families:
         specs += quantum_models(cfg.vqc_steps, cfg.vqc_grid)
+    if "quantum-separable" in cfg.families:
+        specs += separable_models(cfg.vqc_steps, cfg.vqc_grid)
     return specs
 
 
@@ -51,7 +55,8 @@ _SINGLE_THREAD_ENV = {
 }
 _WORKER: dict = {}
 # rough relative costs, so the slowest tasks start first
-_COST = {"VQC": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2, "QSVM-fidelity": 1}
+_COST = {"VQC": 10, "VQC-sep": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2, "QSVM-projected-sep": 2,
+         "QSVM-fidelity": 1, "QSVM-fidelity-sep": 1}
 
 
 def _init_worker(X_pool, y_pool, cores) -> None:
@@ -89,12 +94,9 @@ def _run_task(cfg: BenchmarkConfig, seed: int, model: str) -> dict:
     }
 
 
-def run_benchmark(
-    cfg: BenchmarkConfig, X_pool, y_pool, log: Callable[[str], None] = print, jobs: int = 1
-) -> list[dict]:
-    """Run every (seed, model) pair in ``jobs`` single-threaded worker processes."""
-    names = [s.name for s in models_for(cfg)]
-    tasks = sorted(((seed, m) for seed in cfg.seeds for m in names), key=lambda t: -_COST.get(t[1], 0))
+@contextmanager
+def _worker_pool(jobs: int, X_pool, y_pool):
+    """Process pool of ``jobs`` single-threaded workers, each pinned to its own core on Linux."""
     ctx = mp.get_context("spawn")
     cores = None
     if hasattr(os, "sched_setaffinity") and jobs <= len(os.sched_getaffinity(0)):
@@ -107,20 +109,87 @@ def run_benchmark(
         with ProcessPoolExecutor(
             max_workers=jobs, mp_context=ctx, initializer=_init_worker, initargs=(X_pool, y_pool, cores),
         ) as pool:
-            futures = {pool.submit(_run_task, cfg, seed, m): (seed, m) for seed, m in tasks}
-            rows = []
-            for future in as_completed(futures):
-                row = future.result()
-                rows.append(row)
-                log(f"  [{cfg.name}] seed={row['seed']} {row['model']:<15} AUPRC={row['auprc']:.3f} "
-                    f"acc={row['accuracy']:.3f} ({row['seconds']:.1f}s, {row['n_configs']} configs)")
+            yield pool
     finally:
         for k, v in saved.items():
             if v is None:
                 os.environ.pop(k, None)
             else:
                 os.environ[k] = v
+
+
+def run_benchmark(
+    cfg: BenchmarkConfig, X_pool, y_pool, log: Callable[[str], None] = print, jobs: int = 1
+) -> list[dict]:
+    """Run every (seed, model) pair in ``jobs`` single-threaded worker processes."""
+    names = [s.name for s in models_for(cfg)]
+    tasks = sorted(((seed, m) for seed in cfg.seeds for m in names), key=lambda t: -_COST.get(t[1], 0))
+    rows = []
+    with _worker_pool(jobs, X_pool, y_pool) as pool:
+        futures = {pool.submit(_run_task, cfg, seed, m): (seed, m) for seed, m in tasks}
+        for future in as_completed(futures):
+            row = future.result()
+            rows.append(row)
+            log(f"  [{cfg.name}] seed={row['seed']} {row['model']:<18} AUPRC={row['auprc']:.3f} "
+                f"acc={row['accuracy']:.3f} ({row['seconds']:.1f}s, {row['n_configs']} configs)")
     return sorted(rows, key=lambda r: (r["seed"], names.index(r["model"])))
+
+
+GEOMETRY_FIELDS = [
+    "experiment", "seed", "model", "g", "g_over_sqrt_n", "sqrt_n", "g_tra", "lambda", "classical_kernel", "kernel_params",
+]
+
+
+def _quantum_gram(model: str, params: dict, X_train: np.ndarray) -> np.ndarray:
+    """Training Gram matrix of a tuned quantum kernel model (same code path as models.py)."""
+    entangling = not model.endswith("-sep")
+    if model.startswith("QSVM-fidelity"):
+        S = iqp_states(X_train, params["scale"], entangling=entangling)
+        return fidelity_kernel(S, S)
+    if model.startswith("QSVM-projected"):
+        B = bloch_vectors(X_train, params["scale"], entangling=entangling)
+        return projected_kernel(B, B, projected_gamma(B, params["gamma_factor"]))
+    raise ValueError(f"{model} is not a kernel model")
+
+
+def _geometry_task(cfg: GeometryConfig, split_cfg: BenchmarkConfig, seed: int, selected: dict) -> list[dict]:
+    X_pool, y_pool = _WORKER["pool"]
+    split = make_split(
+        X_pool, y_pool, n_samples=split_cfg.n_samples, positive_fraction=split_cfg.positive_fraction,
+        test_size=split_cfg.test_size, n_components=split_cfg.n_components, n_folds=split_cfg.n_folds, seed=seed,
+    )
+    classical = decompose(classical_kernels(split.X_train))
+    rows = []
+    for model, params in selected.items():
+        best = minimum_geometric_difference(classical, _quantum_gram(model, params, split.X_train))
+        rows.append({
+            "experiment": cfg.name, "seed": seed, "model": model, "g": best["g"],
+            "g_over_sqrt_n": best["g"] / best["sqrt_n"], "sqrt_n": best["sqrt_n"], "g_tra": best["g_tra"],
+            "lambda": best["lambda"], "classical_kernel": best["classical_kernel"],
+            "kernel_params": json.dumps(params, sort_keys=True),
+        })
+    return rows
+
+
+def run_geometry(
+    cfg: GeometryConfig, split_cfg: BenchmarkConfig, benchmark_rows: list[dict], X_pool, y_pool,
+    log: Callable[[str], None] = print, jobs: int = 1,
+) -> list[dict]:
+    """Geometric difference of every tuned quantum kernel model, one worker task per seed."""
+    selected: dict[int, dict] = {}
+    for r in benchmark_rows:
+        if r["model"] in cfg.models:
+            selected.setdefault(int(r["seed"]), {})[r["model"]] = json.loads(r["best_params"])
+    rows = []
+    with _worker_pool(jobs, X_pool, y_pool) as pool:
+        futures = [pool.submit(_geometry_task, cfg, split_cfg, seed, sel) for seed, sel in sorted(selected.items())]
+        for future in as_completed(futures):
+            for row in future.result():
+                rows.append(row)
+                log(f"  [{cfg.name}] seed={row['seed']} {row['model']:<18} g={row['g']:.2f} "
+                    f"(sqrt N = {row['sqrt_n']:.1f}; vs {row['classical_kernel']}, lambda={row['lambda']:g})")
+    order = list(cfg.models)
+    return sorted(rows, key=lambda r: (r["seed"], order.index(r["model"])))
 
 
 CONCENTRATION_FIELDS = [

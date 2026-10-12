@@ -140,16 +140,54 @@ def edge_lines(rows: list[dict], axes: dict[str, dict[str, list]], min_seeds: in
     ]
 
 
-def verdict(diffs: np.ndarray) -> str:
-    """DESIGN.md section 6: a side wins if it is ahead on >= 80% of seeds and the mean paired
-    difference exceeds the standard deviation of the paired differences."""
+def verdict(diffs: np.ndarray, first: str = "quantum", second: str = "classical") -> str:
+    """DESIGN.md section 6, for diffs = first - second: a side wins if it is ahead on >= 80% of
+    seeds and its mean paired lead exceeds the standard deviation of the paired differences."""
     n = len(diffs)
     sd = diffs.std(ddof=1) if n > 1 else 0.0
     if (diffs > 0).sum() >= 0.8 * n and diffs.mean() > sd:
-        return "quantum better"
+        return f"{first} better"
     if (diffs < 0).sum() >= 0.8 * n and -diffs.mean() > sd:
-        return "classical better"
+        return f"{second} better"
     return "no clear difference"
+
+
+def ablation_table(rows: list[dict], sep_rows: list[dict], twins: dict[str, str]) -> str:
+    models = _by_model(rows + sep_rows)
+    lines = [
+        "| Entangled model | AUPRC | Separable twin | AUPRC | Entangled − separable (paired) | Seeds entangled ahead | Verdict |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for ent, sep in twins.items():
+        if ent not in models or sep not in models:
+            continue
+        a = {r["seed"]: r["auprc"] for r in models[ent]}
+        b = {r["seed"]: r["auprc"] for r in models[sep]}
+        seeds = sorted(set(a) & set(b))
+        d = np.array([a[s_] - b[s_] for s_ in seeds])
+        sd = d.std(ddof=1) if len(d) > 1 else 0.0
+        lines.append(
+            f"| {ent} | {_ms([a[s_] for s_ in seeds])} | {sep} | {_ms([b[s_] for s_ in seeds])} "
+            f"| {d.mean():+.3f} ± {sd:.3f} | {int((d > 0).sum())}/{len(d)} | {verdict(d, 'entangled', 'separable')} |"
+        )
+    return "\n".join(lines)
+
+
+def geometry_table(geo_rows: list[dict]) -> str:
+    lines = [
+        "| Quantum kernel model | g, mean ± sd over seeds | g / √N | √N | Closest classical kernel (most frequent) | Seeds |",
+        "|---|---|---|---|---|---|",
+    ]
+    for model, rs in _by_model(geo_rows).items():
+        kernels = defaultdict(int)
+        for r in rs:
+            kernels[r["classical_kernel"]] += 1
+        top = max(kernels, key=kernels.get)
+        lines.append(
+            f"| {model} | {_ms([r['g'] for r in rs])} | {np.mean([r['g_over_sqrt_n'] for r in rs]):.3f} "
+            f"| {rs[0]['sqrt_n']:.1f} | {top} ({kernels[top]}/{len(rs)}) | {len(rs)} |"
+        )
+    return "\n".join(lines)
 
 
 def verdict_table(rows: list[dict]) -> str:
@@ -200,6 +238,8 @@ def load_reading(path: Path, current_hash: str) -> str:
 
 def render_results(context: dict) -> str:
     q8, full, conc = context["q8_rows"], context["full_rows"], context["conc_rows"]
+    sep, geo = context["sep_rows"], context["geo_rows"]
+    n_geo = int(round(geo[0]["sqrt_n"] ** 2)) if geo else 0
     cfg = context["q8_config"]
     conc_cfg = context["conc_config"]
     if cfg.dataset == "creditcard":
@@ -279,9 +319,43 @@ def render_results(context: dict) -> str:
         "",
         *(edge_lines(q8, context["grid_axes"]) or ["- None."]),
         "",
+        "Entanglement ablation (separable models):",
+        "",
+        *(edge_lines(sep, context["grid_axes"]) or ["- None."]),
+        "",
         f"Reference run ({n_raw} features, classical only):",
         "",
         *(edge_lines(full, context["grid_axes"]) or ["- None."]),
+        "",
+        "## Entanglement ablation",
+        "",
+        "The same three quantum models with their entangling gates removed (`creditcard_q8_separable`): the IQP "
+        "feature map without its MultiRZ gates, and for the VQC, layers of single-qubit rotations without CNOTs. "
+        "Same rows, splits, folds and hyperparameter grids. This is the test of Bowles et al. (arXiv:2403.07059): "
+        "if the separable twin does as well, the model's performance does not come from entanglement. Caveat: "
+        "the separable VQC reads out the mean of ⟨Z_i⟩ over all qubits (as in Bowles et al.), because a "
+        "single-qubit readout of a product state would see only one feature; the VQC pair therefore also "
+        "differs in readout.",
+        "",
+        summary_table(sep),
+        "",
+        ablation_table(q8, sep, context["twins"]),
+        "",
+        "Selected hyperparameters of the separable models:",
+        "",
+        params_table(sep, family="quantum-separable"),
+        "",
+        "## Geometric difference (Huang et al.)",
+        "",
+        f"For each seed, the Gram matrix of each tuned quantum kernel on the {n_geo:,} training rows is compared with "
+        "a linear kernel and nine Gaussian kernels, following Appendix L of Huang et al. (arXiv:2011.01938): "
+        "both normalised to trace N, regularised geometric difference "
+        "g = √‖√K_Q K_C (K_C + λI)⁻² √K_Q‖, minimised over classical kernels and λ with training-error term "
+        "g_tra < 0.045. Their bound gives s_C ≤ g² s_Q: when g is much smaller than √N, a classical kernel "
+        "model is guaranteed to predict about as well as the quantum one *for any labels on these inputs*; "
+        "only g of order √N leaves room for a quantum prediction advantage.",
+        "",
+        geometry_table(geo),
         "",
         f"## Reference: classical models on {n_raw} features",
         "",

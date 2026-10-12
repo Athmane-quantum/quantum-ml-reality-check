@@ -4,7 +4,9 @@ Feature map: PennyLane's ``IQPEmbedding`` (the ZZ-feature-map family of
 Havlicek et al., arXiv:1804.11326): Hadamards, ``RZ(s * x_i)`` on every qubit
 and ``MultiRZ(s**2 * x_i * x_j)`` on every pair, repeated ``n_repeats`` times.
 ``s`` is a bandwidth (input scaling) hyperparameter that is tuned like the
-``gamma`` of a classical RBF kernel.
+``gamma`` of a classical RBF kernel. With ``entangling=False`` the MultiRZ gates
+are dropped (``pattern=[]``): the same map without entanglement, used as the
+"separable" control of Bowles et al. (arXiv:2403.07059).
 
 Everything is a noiseless state-vector simulation on a CPU (no shot noise, no
 hardware). With at most 10 qubits these models are cheap to simulate
@@ -29,25 +31,29 @@ def _check_inputs(X: np.ndarray) -> np.ndarray:
     return X
 
 
+def _pattern(entangling: bool):
+    return None if entangling else []  # None = PennyLane's default (all pairs)
+
+
 @lru_cache(maxsize=None)
-def _state_circuit(n_qubits: int, n_repeats: int):
+def _state_circuit(n_qubits: int, n_repeats: int, entangling: bool = True):
     dev = qml.device("default.qubit", wires=n_qubits)
 
     @qml.qnode(dev)
     def circuit(x):
-        qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats)
+        qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats, pattern=_pattern(entangling))
         return qml.state()
 
     return circuit
 
 
 @lru_cache(maxsize=None)
-def _bloch_circuit(n_qubits: int, n_repeats: int):
+def _bloch_circuit(n_qubits: int, n_repeats: int, entangling: bool = True):
     dev = qml.device("default.qubit", wires=n_qubits)
 
     @qml.qnode(dev)
     def circuit(x):
-        qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats)
+        qml.IQPEmbedding(x, wires=range(n_qubits), n_repeats=n_repeats, pattern=_pattern(entangling))
         return (
             [qml.expval(qml.PauliX(i)) for i in range(n_qubits)]
             + [qml.expval(qml.PauliY(i)) for i in range(n_qubits)]
@@ -57,21 +63,21 @@ def _bloch_circuit(n_qubits: int, n_repeats: int):
     return circuit
 
 
-def iqp_states(X: np.ndarray, scale: float, n_repeats: int = 2) -> np.ndarray:
+def iqp_states(X: np.ndarray, scale: float, n_repeats: int = 2, entangling: bool = True) -> np.ndarray:
     """State vectors |phi(s * x)>, shape (n_samples, 2**n_qubits)."""
     X = _check_inputs(X)
-    out = np.asarray(_state_circuit(X.shape[1], n_repeats)(scale * X))
+    out = np.asarray(_state_circuit(X.shape[1], n_repeats, entangling)(scale * X))
     return out.reshape(X.shape[0], 2 ** X.shape[1])
 
 
-def bloch_vectors(X: np.ndarray, scale: float, n_repeats: int = 2) -> np.ndarray:
+def bloch_vectors(X: np.ndarray, scale: float, n_repeats: int = 2, entangling: bool = True) -> np.ndarray:
     """Single-qubit Bloch vectors of |phi(s * x)>, shape (n_samples, 3 * n_qubits).
 
     Columns are <X_0>..<X_{n-1}>, <Y_0>..<Y_{n-1}>, <Z_0>..<Z_{n-1}>. Together they
     determine every one-qubit reduced density matrix rho_k = (I + r_k . sigma) / 2.
     """
     X = _check_inputs(X)
-    out = _bloch_circuit(X.shape[1], n_repeats)(scale * X)
+    out = _bloch_circuit(X.shape[1], n_repeats, entangling)(scale * X)
     return np.stack([np.asarray(o, dtype=float).reshape(X.shape[0]) for o in out], axis=1)
 
 

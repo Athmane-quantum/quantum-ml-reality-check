@@ -62,6 +62,9 @@ def grid_axes() -> dict[str, dict[str, list]]:
         "QSVM-fidelity": {"scale": FIDELITY_SCALES, "C": SVM_C},
         "QSVM-projected": {"scale": PROJECTED_SCALES, "gamma_factor": PROJECTED_GAMMA_FACTORS, "C": SVM_C},
         "VQC": dict(VQC_GRID),
+        "QSVM-fidelity-sep": {"scale": FIDELITY_SCALES, "C": SVM_C},
+        "QSVM-projected-sep": {"scale": PROJECTED_SCALES, "gamma_factor": PROJECTED_GAMMA_FACTORS, "C": SVM_C},
+        "VQC-sep": dict(VQC_GRID),
     }
 
 
@@ -128,43 +131,57 @@ def _precomputed_svm(kernels: dict, y_train, cv_splits) -> tuple[dict, GridSearc
     return best_key, best_search, n_configs
 
 
-def _fidelity_qsvm(split: Split, seed: int) -> ModelResult:
-    states = {s: iqp_states(split.X_train, s) for s in FIDELITY_SCALES}
-    kernels = {s: fidelity_kernel(S, S) for s, S in states.items()}
-    scale, search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
-    K_test = fidelity_kernel(iqp_states(split.X_test, scale), states[scale])
-    best = search.best_estimator_
-    return ModelResult(
-        scores=best.decision_function(K_test),
-        y_pred=best.predict(K_test),
-        best_params={"scale": scale, **_clean(search.best_params_)},
-        n_configs=n_configs,
-        cv_score=float(search.best_score_),
-    )
+def make_fidelity_qsvm(entangling: bool = True) -> Callable[[Split, int], ModelResult]:
+    def run(split: Split, seed: int) -> ModelResult:
+        states = {s: iqp_states(split.X_train, s, entangling=entangling) for s in FIDELITY_SCALES}
+        kernels = {s: fidelity_kernel(S, S) for s, S in states.items()}
+        scale, search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
+        K_test = fidelity_kernel(iqp_states(split.X_test, scale, entangling=entangling), states[scale])
+        best = search.best_estimator_
+        return ModelResult(
+            scores=best.decision_function(K_test),
+            y_pred=best.predict(K_test),
+            best_params={"scale": scale, **_clean(search.best_params_)},
+            n_configs=n_configs,
+            cv_score=float(search.best_score_),
+        )
+
+    return run
 
 
-def _projected_qsvm(split: Split, seed: int) -> ModelResult:
-    blochs = {s: bloch_vectors(split.X_train, s) for s in PROJECTED_SCALES}
-    kernels, gammas = {}, {}
-    for s, B in blochs.items():
-        # analogue of 'scale': exponent is gamma * |dr|^2 / 2 summed over 3n Bloch coordinates
-        base = 2.0 / (B.shape[1] * max(B.var(), 1e-12))
-        for g in PROJECTED_GAMMA_FACTORS:
-            gammas[(s, g)] = g * base
-            kernels[(s, g)] = projected_kernel(B, B, g * base)
-    (scale, factor), search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
-    K_test = projected_kernel(bloch_vectors(split.X_test, scale), blochs[scale], gammas[(scale, factor)])
-    best = search.best_estimator_
-    return ModelResult(
-        scores=best.decision_function(K_test),
-        y_pred=best.predict(K_test),
-        best_params={"scale": scale, "gamma_factor": factor, **_clean(search.best_params_)},
-        n_configs=n_configs,
-        cv_score=float(search.best_score_),
-    )
+def projected_gamma(bloch: np.ndarray, factor: float) -> float:
+    """gamma = factor * base, the analogue of sklearn's 'scale': the exponent is
+    gamma * |dr|^2 / 2 summed over the 3n Bloch coordinates."""
+    base = 2.0 / (bloch.shape[1] * max(bloch.var(), 1e-12))
+    return factor * base
 
 
-def make_vqc_runner(steps: int = 150, grid: dict | None = None) -> Callable[[Split, int], ModelResult]:
+def make_projected_qsvm(entangling: bool = True) -> Callable[[Split, int], ModelResult]:
+    def run(split: Split, seed: int) -> ModelResult:
+        blochs = {s: bloch_vectors(split.X_train, s, entangling=entangling) for s in PROJECTED_SCALES}
+        kernels, gammas = {}, {}
+        for s, B in blochs.items():
+            for g in PROJECTED_GAMMA_FACTORS:
+                gammas[(s, g)] = projected_gamma(B, g)
+                kernels[(s, g)] = projected_kernel(B, B, gammas[(s, g)])
+        (scale, factor), search, n_configs = _precomputed_svm(kernels, split.y_train, split.cv_splits)
+        B_test = bloch_vectors(split.X_test, scale, entangling=entangling)
+        K_test = projected_kernel(B_test, blochs[scale], gammas[(scale, factor)])
+        best = search.best_estimator_
+        return ModelResult(
+            scores=best.decision_function(K_test),
+            y_pred=best.predict(K_test),
+            best_params={"scale": scale, "gamma_factor": factor, **_clean(search.best_params_)},
+            n_configs=n_configs,
+            cv_score=float(search.best_score_),
+        )
+
+    return run
+
+
+def make_vqc_runner(
+    steps: int = 150, grid: dict | None = None, entangling: bool = True
+) -> Callable[[Split, int], ModelResult]:
     grid = grid or VQC_GRID
 
     def run(split: Split, seed: int) -> ModelResult:
@@ -175,14 +192,14 @@ def make_vqc_runner(steps: int = 150, grid: dict | None = None) -> Callable[[Spl
         for cfg in configs:
             fold_scores = []
             for train_idx, val_idx in split.cv_splits:
-                model = VariationalQuantumClassifier(steps=steps, random_state=seed, **cfg)
+                model = VariationalQuantumClassifier(steps=steps, entangling=entangling, random_state=seed, **cfg)
                 model.fit(split.X_train[train_idx], split.y_train[train_idx])
                 fold_scores.append(
                     average_precision_score(split.y_train[val_idx], model.decision_function(split.X_train[val_idx]))
                 )
             if np.mean(fold_scores) > best_score:
                 best_cfg, best_score = cfg, float(np.mean(fold_scores))
-        model = VariationalQuantumClassifier(steps=steps, random_state=seed, **best_cfg)
+        model = VariationalQuantumClassifier(steps=steps, entangling=entangling, random_state=seed, **best_cfg)
         model.fit(split.X_train, split.y_train)
         return ModelResult(
             scores=model.decision_function(split.X_test),
@@ -222,13 +239,29 @@ def classical_models() -> list[ModelSpec]:
 
 def quantum_models(vqc_steps: int = 150, vqc_grid: dict | None = None) -> list[ModelSpec]:
     return [
-        ModelSpec("QSVM-fidelity", "quantum", _fidelity_qsvm,
+        ModelSpec("QSVM-fidelity", "quantum", make_fidelity_qsvm(),
                   "SVC on |<phi(x)|phi(x')>|^2, IQP/ZZ feature map (2 reps); bandwidth x C x class_weight"),
-        ModelSpec("QSVM-projected", "quantum", _projected_qsvm,
+        ModelSpec("QSVM-projected", "quantum", make_projected_qsvm(),
                   "SVC on projected kernel (1-qubit reduced states), same feature map; bandwidth x gamma x C x class_weight"),
         ModelSpec("VQC", "quantum", make_vqc_runner(vqc_steps, vqc_grid),
                   "IQP feature map (1 rep) + StronglyEntanglingLayers, Adam; bandwidth x depth"),
     ]
+
+
+def separable_models(vqc_steps: int = 150, vqc_grid: dict | None = None) -> list[ModelSpec]:
+    """Unentangled twins of the quantum models, same grids (DESIGN.md, entanglement ablation)."""
+    return [
+        ModelSpec("QSVM-fidelity-sep", "quantum-separable", make_fidelity_qsvm(entangling=False),
+                  "QSVM-fidelity with the MultiRZ (entangling) gates removed from the feature map"),
+        ModelSpec("QSVM-projected-sep", "quantum-separable", make_projected_qsvm(entangling=False),
+                  "QSVM-projected with the MultiRZ (entangling) gates removed from the feature map"),
+        ModelSpec("VQC-sep", "quantum-separable", make_vqc_runner(vqc_steps, vqc_grid, entangling=False),
+                  "VQC without entangling gates (Rot layers), readout mean_i <Z_i>"),
+    ]
+
+
+# entangled model -> its separable twin
+TWINS = {"QSVM-fidelity": "QSVM-fidelity-sep", "QSVM-projected": "QSVM-projected-sep", "VQC": "VQC-sep"}
 
 
 def timed(run: Callable[[Split, int], ModelResult], split: Split, seed: int) -> ModelResult:

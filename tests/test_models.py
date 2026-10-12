@@ -2,11 +2,13 @@ import numpy as np
 import pytest
 
 from qmlrc.benchmark import metrics
-from qmlrc.models import classical_models, quantum_models, timed
+from qmlrc.models import classical_models, quantum_models, separable_models, timed
 
-SPECS = classical_models() + quantum_models(vqc_steps=5, vqc_grid={"scale": [0.3], "n_layers": [1, 2]})
+TINY_VQC = {"scale": [0.3], "n_layers": [1, 2]}
+SPECS = classical_models() + quantum_models(5, TINY_VQC) + separable_models(5, TINY_VQC)
 EXPECTED_CONFIGS = {"LogReg": 16, "RBF-SVM": 60, "GradBoost": 81, "MLP": 12,
-                    "QSVM-fidelity": 72, "QSVM-projected": 192, "VQC": 2}
+                    "QSVM-fidelity": 72, "QSVM-projected": 192, "VQC": 2,
+                    "QSVM-fidelity-sep": 72, "QSVM-projected-sep": 192, "VQC-sep": 2}
 
 
 @pytest.mark.parametrize("spec", SPECS, ids=[s.name for s in SPECS])

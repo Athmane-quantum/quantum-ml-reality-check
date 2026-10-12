@@ -10,13 +10,21 @@ def test_quick_run_all_end_to_end(tmp_path: Path):
     assert main(["--quick", "--out-dir", str(tmp_path)]) == 0
     text = (tmp_path / "RESULTS.md").read_text()
     assert DISCLAIMER in text
-    for name in ["LogReg", "RBF-SVM", "GradBoost", "MLP", "QSVM-fidelity", "QSVM-projected", "VQC"]:
+    for name in ["LogReg", "RBF-SVM", "GradBoost", "MLP", "QSVM-fidelity", "QSVM-projected", "VQC",
+                 "QSVM-fidelity-sep", "QSVM-projected-sep", "VQC-sep"]:
         assert f"| {name} |" in text
+    assert "## Entanglement ablation" in text and "## Geometric difference" in text
+    geo = read_csv(tmp_path / "experiments" / "geometric_difference" / "results.csv")
+    assert len(geo) == 4 and all(r["g"] > 0 for r in geo)
     rows = read_csv(tmp_path / "experiments" / "creditcard_q8" / "results.csv")
     assert {r["model"] for r in rows} >= {"RBF-SVM", "QSVM-fidelity"}
 
     # rebuilding the report from the CSVs gives the same fingerprint
-    fingerprint = results_hash(rows + read_csv(tmp_path / "experiments" / "creditcard_full_classical" / "results.csv"))
+    fingerprint = results_hash(
+        rows
+        + read_csv(tmp_path / "experiments" / "creditcard_full_classical" / "results.csv")
+        + read_csv(tmp_path / "experiments" / "creditcard_q8_separable" / "results.csv")
+    )
     assert main(["--quick", "--report-only", "--out-dir", str(tmp_path)]) == 0
     assert fingerprint in (tmp_path / "RESULTS.md").read_text()
 
@@ -34,3 +42,15 @@ def test_edge_lines_flag_values_on_grid_edges():
     rows = [{"model": "M", "seed": s, "best_params": json.dumps({"a": a, "b": 2})} for s, a in enumerate([1, 1, 3])]
     lines = edge_lines(rows, {"M": {"a": [1, 2, 3], "b": [1, 2, 3]}})
     assert lines == ["- M: `a` took its lowest grid value (1) in 2/3 seeds."]
+
+
+def test_verdict_rule_is_symmetric():
+    import numpy as np
+
+    from qmlrc.report import verdict
+
+    assert verdict(np.array([0.02, 0.03, 0.025, 0.02, 0.03])) == "quantum better"
+    assert verdict(-np.array([0.02, 0.03, 0.025, 0.02, 0.03])) == "classical better"
+    assert verdict(np.array([0.02, -0.03, 0.025, 0.02, -0.03])) == "no clear difference"
+    assert verdict(np.array([0.1, 0.1, 0.1, 0.1, -0.5]), "entangled", "separable") == "no clear difference"
+    assert verdict(np.array([0.02, 0.03, 0.025, 0.02, 0.0]), "entangled", "separable") == "entangled better"
