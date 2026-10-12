@@ -1,0 +1,178 @@
+{
+ "0708.1879": {
+  "first_author": "Vittorio Giovannetti",
+  "title": "Quantum random access memory"
+ },
+ "1801.00862": {
+  "first_author": "John Preskill",
+  "title": "Quantum Computing in the NISQ era and beyond"
+ },
+ "1803.11173": {
+  "first_author": "Jarrod R. McClean",
+  "title": "Barren plateaus in quantum neural network training landscapes"
+ },
+ "1804.11326": {
+  "first_author": "Vojtech Havlicek",
+  "title": "Supervised learning with quantum enhanced feature spaces"
+ },
+ "1807.04271": {
+  "first_author": "Ewin Tang",
+  "title": "A quantum-inspired classical algorithm for recommendation systems"
+ },
+ "1811.00414": {
+  "first_author": "Ewin Tang",
+  "title": "Quantum principal component analysis only achieves an exponential speedup because of its state preparation assumptions"
+ },
+ "1905.10415": {
+  "first_author": "Juan Miguel Arrazola",
+  "title": "Quantum-inspired algorithms in practice"
+ },
+ "1910.06151": {
+  "first_author": "Nai-Hui Chia",
+  "title": "Sampling-based sublinear low-rank matrix arithmetic framework for dequantizing quantum machine learning"
+ },
+ "2001.00550": {
+  "first_author": "M. Cerezo",
+  "title": "Cost Function Dependent Barren Plateaus in Shallow Parametrized Quantum Circuits"
+ },
+ "2007.14384": {
+  "first_author": "Samson Wang",
+  "title": "Noise-Induced Barren Plateaus in Variational Quantum Algorithms"
+ },
+ "2010.02174": {
+  "first_author": "Yunchao Liu",
+  "title": "A rigorous and robust quantum speed-up in supervised machine learning"
+ },
+ "2011.01938": {
+  "first_author": "Hsin-Yuan Huang",
+  "title": "Power of data in quantum machine learning"
+ },
+ "2101.02464": {
+  "first_author": "Hsin-Yuan Huang",
+  "title": "Information-theoretic bounds on quantum advantage in machine learning"
+ },
+ "2105.03406": {
+  "first_author": "Jennifer R. Glick",
+  "title": "Covariant quantum kernels for data with group structure"
+ },
+ "2106.03747": {
+  "first_author": "Jonas M. Kübler",
+  "title": "The Inductive Bias of Quantum Kernels"
+ },
+ "2106.12627": {
+  "first_author": "Hsin-Yuan Huang",
+  "title": "Provably efficient machine learning for quantum many-body problems"
+ },
+ "2109.04457": {
+  "first_author": "Ryuji Takagi",
+  "title": "Fundamental limits of quantum error mitigation"
+ },
+ "2111.05451": {
+  "first_author": "Ruslan Shaydulin",
+  "title": "Importance of Kernel Bandwidth in Quantum Machine Learning"
+ },
+ "2111.05881": {
+  "first_author": "Sitan Chen",
+  "title": "Exponential separations between learning with and without quantum memory"
+ },
+ "2112.00778": {
+  "first_author": "Hsin-Yuan Huang",
+  "title": "Quantum advantage in learning from experiments"
+ },
+ "2206.06686": {
+  "first_author": "Abdulkadir Canatar",
+  "title": "Bandwidth Enables Generalization in Quantum Kernel Models"
+ },
+ "2208.11060": {
+  "first_author": "Supanut Thanasilp",
+  "title": "Exponential concentration in quantum kernel methods"
+ },
+ "2210.11505": {
+  "first_author": "Yihui Quek",
+  "title": "Exponentially tighter bounds on limitations of quantum error mitigation"
+ },
+ "2210.13200": {
+  "first_author": "Jonas Landman",
+  "title": "Classically Approximating Variational Quantum Machine Learning with Random Fourier Features"
+ },
+ "2305.10310": {
+  "first_author": "Samuel Jaques",
+  "title": "QRAM: A Survey and Critique"
+ },
+ "2306.00061": {
+  "first_author": "Sofiene Jerbi",
+  "title": "Shadows of quantum machine learning"
+ },
+ "2306.14887": {
+  "first_author": "Joseph Tindall",
+  "title": "Efficient tensor network simulation of IBM's Eagle kicked Ising experiment"
+ },
+ "2306.16028": {
+  "first_author": "Casper Gyurik",
+  "title": "Exponential separations between classical and quantum learners"
+ },
+ "2309.11647": {
+  "first_author": "Ryan Sweke",
+  "title": "Potential and limitations of random Fourier features for dequantizing quantum machine learning"
+ },
+ "2312.09121": {
+  "first_author": "M. Cerezo",
+  "title": "Does provable absence of barren plateaus imply classical simulability?"
+ },
+ "2403.07059": {
+  "first_author": "Joseph Bowles",
+  "title": "Better than classical? The subtle art of benchmarking quantum machine learning models"
+ },
+ "2405.00781": {
+  "first_author": "Martin Larocca",
+  "title": "Barren Plateaus in Variational Quantum Computing"
+ },
+ "2405.02027": {
+  "first_author": "Riccardo Molteni",
+  "title": "Exponential quantum advantages in learning quantum observables from classical data"
+ },
+ "2408.12739": {
+  "first_author": "Pablo Bermejo",
+  "title": "Quantum Convolutional Neural Networks are Effectively Classically Simulable"
+ },
+ "2408.13687": {
+  "first_author": "Rajeev Acharya",
+  "title": "Quantum error correction below the surface code threshold"
+ },
+ "2503.20879": {
+  "first_author": "Laura Lewis",
+  "title": "Quantum advantage for learning shallow neural networks with natural data distributions"
+ },
+ "2509.09033": {
+  "first_author": "Hsin-Yuan Huang",
+  "title": "Generative quantum advantage for classical and quantum problems"
+ },
+ "2512.24801": {
+  "first_author": "Sabrina Herbst",
+  "title": "Limits of quantum generative models with classical sampling hardness"
+ },
+ "2601.04732": {
+  "first_author": "Dominik Freinberger",
+  "title": "The Role of Quantum in Hybrid Quantum-Classical Neural Networks: A Realistic Assessment"
+ },
+ "2603.18825": {
+  "first_author": "Augustine Kshetrimayum",
+  "title": "Quantum Advantage: a Tensor Network Perspective"
+ },
+ "2605.21346": {
+  "first_author": "Onur Danaci",
+  "title": "Evidence of Quantum Machine Learning Advantage with Tens of Noisy Qubits"
+ },
+ "2607.01197": {
+  "first_author": "Chuanming Yu",
+  "title": "Quantum vs. Classical Machine Learning: A Unified Empirical Comparison"
+ },
+ "2608.13521": {
+  "first_author": "Ishaan Kannan",
+  "title": "Exponential quantum advantage for learning signals with a single qubit"
+ },
+ "2608.18155": {
+  "first_author": "Syeda Anshrah Gillani",
+  "title": "How Quantum Is the Advantage? A Fair, Calibration- and Noise-Aware Benchmark and Attribution Audit of Quantum Machine Learning for Network Intrusion Detection"
+ }
+}
