@@ -174,5 +174,37 @@
  "2608.18155": {
   "first_author": "Syeda Anshrah Gillani",
   "title": "How Quantum Is the Advantage? A Fair, Calibration- and Noise-Aware Benchmark and Attribution Audit of Quantum Machine Learning for Network Intrusion Detection"
+ },
+ "2609.38403": {
+  "first_author": "Natsuto Isogai",
+  "title": "Advantage of Sample Complexity in Quantum PAC Learning Requires Inverse Access to State-Preparation Unitaries"
+ },
+ "2609.40020": {
+  "first_author": "Giuseppe De Riso",
+  "title": "Technical analysis of the Resource-efficient Quantum Walkers Quantum Random Access Memory"
+ },
+ "2609.40105": {
+  "first_author": "Qifan Jiang",
+  "title": "Harnessing problem structure for end-to-end quantum speed-ups"
+ },
+ "2610.00841": {
+  "first_author": "Oliver Knitter",
+  "title": "Neural Fourier Surrogates for Data Reuploading Quantum Neural Networks"
+ },
+ "2610.01141": {
+  "first_author": "Sota Hashimoto",
+  "title": "Classical Hardness of Learning Functions of Hamiltonians"
+ },
+ "2610.04190": {
+  "first_author": "Daniel R. Germain",
+  "title": "Reduced Cost Quantum Kernel Training"
+ },
+ "2610.11360": {
+  "first_author": "Oishik Kar",
+  "title": "When Does Interference Help Learning? Kernel Geometry as a Pre-Experimental Test for Photonic Reservoir Computing"
+ },
+ "2610.12148": {
+  "first_author": "Jack Waller",
+  "title": "Large-Scale Benchmarking of Quantum Neural Network Configurations for Financial Time Series Forecasting"
  }
 }

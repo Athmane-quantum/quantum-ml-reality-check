@@ -2,7 +2,8 @@
 
 *Built by AI agents (Claude), directed and reviewed by Athmane Mekhalfia.*
 
-**Last updated:** 2026-10-12 (session 1). **Question:** what is left to do before quantum computers give
+**Last updated:** 2026-10-12 (session 2: literature watch for arXiv submissions from 2026-09-28 to
+2026-10-12; no status or progress changes, new evidence added under milestones 1, 2, 5, 6, 7, 8). **Question:** what is left to do before quantum computers give
 a *useful* advantage in machine learning (ML), meaning better results than the best classical
 methods on a task someone cares about?
 
@@ -69,6 +70,10 @@ end to end.
 - Jerbi et al. show that some advantage survives when the quantum computer is used **only during
   training** and the deployed model is classical ("shadow models"), under complexity assumptions.
   arXiv:2306.00061, *Nat. Commun.* **15**, 5676 (2024) `[A]`
+- *New (session 2).* Hashimoto & Kawachi prove average-case classical hardness for "Hamiltonian
+  function learning", a physically motivated task: predicting Tr[f(H)ρ] from classical descriptions of
+  H and ρ. The proof assumes that factoring random RSA moduli is hard, so the separation is still
+  cryptographic underneath. arXiv:2610.01141 (Oct 2026 preprint) `[A]`
 
 ## Milestone 2: Quantum-generated data alone gives an advantage ("power of data")
 
@@ -92,6 +97,15 @@ simulation. No natural dataset is known to pass it.
 - Huang et al.: classical ML trained on measurement data efficiently predicts ground-state properties
   of gapped Hamiltonians in finite dimensions. Even "quantum" problems can be learned classically
   from data. arXiv:2106.12627, *Science* **377** (2022) `[A]`
+- *New (session 2).* The same geometric test applied to photonic boson-sampling kernels: a large
+  geometric separation from classical kernels gives an accuracy advantage of +0.22 ± 0.05 on
+  adversarially constructed tasks, "an order of magnitude smaller on natural tasks". Kar & Babu H,
+  arXiv:2610.11360 (Oct 2026 preprint) `[A]`
+- **This repository (session 2).** On the fraud data, the geometric difference between each of our
+  four tuned quantum kernels (entangled and unentangled) and classical kernels is g = 1.3–4.9 on
+  every seed, against √N = 37.4. That is far inside the "classical ML predicts similar or better"
+  region of Huang et al.'s test, for *any* labels on these inputs. The closest classical kernel is
+  usually a wide Gaussian (RESULTS.md).
 
 ## Milestone 3: Exponential speed-ups from quantum linear algebra survive fair comparison
 
@@ -177,10 +191,19 @@ baselines matching or beating the quantum models.
   (Yu et al., arXiv:2607.01197 `[A]`). Network-intrusion detection: tuned random forests and XGBoost
   match or beat quantum models on all four datasets; two narrow effects survive multiple-testing
   correction (Gillani et al., arXiv:2608.18155 `[A]`).
+- *New (session 2), a claim that does not meet the bar of this map.* 1,368 QNN configurations for
+  GBP/USD exchange-rate forecasting; the best is reported to outperform "a classical BiLSTM baseline".
+  According to the abstract, that is the only classical comparison. Runs on IQM hardware show gate
+  errors and decoherence as a significant barrier. Waller et al., arXiv:2610.12148 (Oct 2026
+  preprint) `[A]`
 - **This repository** (credit-card fraud, 8 qubits, 5 seeds, session 1): no quantum model beats any
   tuned classical model. The best classical models reach 0.918 AUPRC and the best quantum model 0.913,
   a gap inside the seed-to-seed noise, and the variational classifier is last at 0.899. See
   [RESULTS.md](RESULTS.md).
+- **This repository, session 2.** Removing the entangling gates from both quantum kernels leaves
+  their AUPRC unchanged (fidelity 0.912 vs 0.911; projected 0.917 vs 0.913, within noise). This
+  reproduces Bowles et al.'s "entanglement does not help" finding on real data. The VQC pair was
+  inconclusive, because the unentangled VQC we built trains unreliably.
 
 ## Milestone 6: Quantum kernels that generalise, stay estimable, and are not classically easy
 
@@ -211,6 +234,14 @@ useful dataset has not been shown.
   (2025) `[A]`). See also Landman et al., arXiv:2210.13200 `[A]`.
 - A structured route: covariant quantum kernels for data with group structure, run on 27 qubits of a
   superconducting processor. Glick et al., arXiv:2105.03406, *Nat. Phys.* **20**, 479 (2024) `[A]`
+- *New (session 2).* A classical neural network that learns coefficients on the same finite Fourier
+  support as data-reuploading QNNs ("Neural Fourier Surrogates") is competitive with classical
+  baselines and comparable to the QNNs on tabular benchmarks. Knitter, Mei & Kim, arXiv:2610.00841
+  (Sep 2026 preprint) `[A]`
+- *New (session 2), same dataset as ours.* One-class quantum-kernel anomaly detection on the ULB
+  credit-card fraud data finds no severe exponential concentration over the qubit counts tested.
+  Nyström approximation with five landmarks keeps 94–97 % of the exact-kernel average precision.
+  Germain, Goldweber & Rodriguez, arXiv:2610.04190 (Oct 2026 preprint) `[A]`
 - **This repository:** on the fraud data at bandwidth s = 1, the mean off-diagonal fidelity-kernel
   value falls from 0.75 (2 qubits) to 0.11 (10 qubits): the onset of concentration. At s ≤ 0.3 there
   is none up to 10 qubits, and cross-validation always chose s ≤ 0.3 (RESULTS.md).
@@ -236,6 +267,14 @@ built, and its cost may cancel the speed-ups it is meant to enable.
   *Quantum* **9**, 1922 (2025) `[A]`
 - Even with superposition queries, preparing the state of an arbitrary length-n vector takes Ω(√n)
   time (a consequence of the quantum search lower bound). Tang, arXiv:1807.04271 `[F]`
+- *New (session 2).* A qRAM design based on quantum walkers uses a number of walkers linear in the
+  address and message sizes, with O(n + m) circuit depth in its short-range variant. It is a
+  theoretical proposal, not hardware. De Riso, Catalano & Lloyd, arXiv:2609.40020 (Sep 2026
+  preprint) `[A]`
+- *New (session 2).* Problem structure can make state preparation cheap enough for a speed-up to
+  survive end-to-end costing: for facility location, structure-aware encoding restores a quadratic
+  speed-up that structure-agnostic encoding loses to dequantisation. This is optimisation, not ML.
+  Jiang, Zhang & Xiang, arXiv:2609.40105 (Sep 2026 preprint) `[A]`
 
 ## Milestone 8: An advantage when learning from quantum data or quantum-enhanced experiments
 
@@ -266,6 +305,10 @@ memory.
   measurements needed to learn *classical* signals, with a 10⁷-fold reduction measured on a
   superconducting cavity–qubit device. Kannan et al., arXiv:2608.13521 (Aug 2026 preprint, not yet
   peer reviewed) `[A]`
+- *New (session 2), a caveat on access models.* In quantum PAC learning, forward-only access to the
+  unitary that prepares the data state gives no asymptotic advantage over classical data or state
+  copies; access to its inverse is essential for the known improvement. Isogai, Yoshida & Murao,
+  arXiv:2609.38403 (Sep 2026 preprint) `[A]`
 
 ## Milestone 9: Hardware that runs QML circuits at useful scale (noise, shots, error mitigation)
 
@@ -342,7 +385,7 @@ adds evidence.
 
 ## Sources
 
-All opened on 2026-10-12 (session 1). `[F]` = full text read, `[A]` = abstract + record read.
+Opened on 2026-10-12 in session 1 unless marked session 2. `[F]` = full text read, `[A]` = abstract + record read.
 
 | Source | Venue (as listed by arXiv/DOI record) | Level | Used in |
 |---|---|---|---|
@@ -390,6 +433,14 @@ All opened on 2026-10-12 (session 1). `[F]` = full text read, `[A]` = abstract +
 | Tindall et al., arXiv:2306.14887 | *PRX Quantum* 5, 010308 (2024) | A | M9 |
 | Kshetrimayum et al., arXiv:2603.18825 | preprint (2026) | A | M9 |
 | Google Quantum AI, arXiv:2408.13687 | *Nature* 638, 920 (2025) | A | M9 |
+| Hashimoto, Kawachi, arXiv:2610.01141 | preprint (2026), opened in session 2 | A | M1 |
+| Kar, Babu H, arXiv:2610.11360 | preprint (2026), opened in session 2 | A | M2 |
+| Waller, Liang, Makris, arXiv:2610.12148 | preprint (2026), opened in session 2 | A | M5 |
+| Knitter, Mei, Kim, arXiv:2610.00841 | preprint (2026), opened in session 2 | A | M6 |
+| Germain, Goldweber, Rodriguez, arXiv:2610.04190 | preprint (2026), opened in session 2 | A | M6 |
+| De Riso, Catalano, Lloyd, arXiv:2609.40020 | preprint (2026), opened in session 2 | A | M7 |
+| Jiang, Zhang, Xiang, arXiv:2609.40105 | preprint (2026), opened in session 2 | A | M7 |
+| Isogai, Yoshida, Murao, arXiv:2609.38403 | preprint (2026), opened in session 2 | A | M8 |
 
 Also used in DESIGN.md: Havlíček et al., arXiv:1804.11326, *Nature* 567, 209 (2019) `[A]`; Bowles et
 al. and Shaydulin & Wild as above.

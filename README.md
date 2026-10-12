@@ -20,7 +20,7 @@ reported) and the definition of a fair comparison are in [DESIGN.md](DESIGN.md).
 
 ## Current headline results
 
-**Benchmark v0 (session 1, 2026-10-12).** Credit-card fraud data (OpenML 1597): 2,000 transactions
+**Benchmark v0 (sessions 1–2, 2026-10-12).** Credit-card fraud data (OpenML 1597): 2,000 transactions
 per seed at 10 % fraud, 8 features = 8 qubits, 5 seeds, every model tuned on the same
 cross-validation folds. Test AUPRC: higher is better, and a random guess scores 0.10.
 
@@ -37,10 +37,18 @@ cross-validation folds. Test AUPRC: higher is better, and a random guess scores 
 **No quantum model beats any classical model.** The gaps are smaller than the seed-to-seed noise, so
 under the decision rule fixed in advance (DESIGN.md §6) every quantum-vs-classical pair is "no clear
 difference". The leaning goes towards classical: the quantum kernels are ahead of the three strongest
-classical models on only 2 of 5 seeds. After tuning, the quantum kernels pick small bandwidths. At those
-bandwidths their circuits should be nearly unentangled and behave like smooth classical kernels. That
-is our reading of the circuit, not yet a measurement; the next session tests it. Full tables,
-timings, a kernel-concentration experiment and the plain-language reading are in
+classical models on only 2 of 5 seeds.
+
+Session 2 added two explanations:
+
+- **Entanglement does not help.** The same quantum kernels with their entangling gates removed score
+  the same: 0.912 vs 0.911 for the fidelity kernel and 0.917 vs 0.913 for the projected kernel. The
+  equivalent test for the variational classifier was inconclusive.
+- **The geometry leaves no room for an advantage.** The geometric difference of Huang et al. between
+  the tuned quantum kernels and classical Gaussian kernels is 1.3–4.9, far below the √N ≈ 37 that an
+  advantage would need, for any labels on this data.
+
+Full tables, timings, a kernel-concentration experiment and the plain-language reading are in
 [RESULTS.md](RESULTS.md).
 
 **Field map in one line:** we estimate the field is about **15 %** of the way to a useful quantum
@@ -71,16 +79,17 @@ cd quantum-ml-reality-check
 python3.13 -m venv .venv && source .venv/bin/activate
 pip install -r requirements-lock.txt && pip install -e . --no-deps
 
-python -m pytest -q                      # unit tests, about 3 minutes
-python -m qmlrc.run_all --quick --out-dir /tmp/qmlrc-smoke   # synthetic smoke run, 1-2 minutes
+python -m pytest -q                      # 38 unit tests, about 3-4 minutes
+python -m qmlrc.run_all --quick --out-dir /tmp/qmlrc-smoke   # synthetic smoke run, about 2 minutes
 python -m qmlrc.run_all                  # full benchmark: rewrites experiments/*/results.csv and RESULTS.md
 python -m qmlrc.run_all --report-only    # rebuild RESULTS.md from the committed CSVs, no computation
 python scripts/check_sources.py          # re-check every arXiv ID cited in FIELD_MAP.md
 ```
 
 The first full run downloads the credit-card fraud dataset from OpenML (about 70 MB, cached in
-`data/`, never committed). The full benchmark takes about 8 minutes on a 4-core cloud container with
-4 single-core workers (`--jobs 4`, the default); with fewer cores it takes proportionally longer.
+`data/`, never committed). The full run takes about 13 minutes on a 4-core cloud container with 4
+single-core workers (`--jobs 4`, the default). Each of its five experiments takes under 6 minutes;
+with fewer cores they take proportionally longer.
 `requirements-lock.txt` pins the exact versions used (Linux x86-64).
 
 ## Repository layout
@@ -88,7 +97,8 @@ The first full run downloads the credit-card fraud dataset from OpenML (about 70
 ```
 src/qmlrc/
   data.py         dataset download, subsampling, train/test split, preprocessing
-  quantum.py      PennyLane feature map, fidelity and projected quantum kernels
+  quantum.py      PennyLane feature map (with or without entangling gates), fidelity and projected kernels
+  geometry.py     geometric difference between classical and quantum kernels (Huang et al. 2021)
   vqc.py          variational quantum classifier (PennyLane + JAX)
   models.py       every model and its hyperparameter grid (classical and quantum)
   benchmark.py    runs (seed, model) tasks in single-core worker processes

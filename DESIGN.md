@@ -94,8 +94,11 @@ configurations tried is reported in every results table.
 `experiments/archive/2026-10-12_run1/`), several models on *both* sides picked values on the edge of
 their grid. We then extended every axis whose CV-selected value sat on an edge in at least 2 of 5
 seeds, by one value, for classical and quantum models alike. The decision used only CV selections,
-never test scores. From now on: if the CV-selected value of an axis sits on an edge in ≥ 2 of 5 seeds,
-extend that axis before trusting the comparison.
+never test scores. The rule, as clarified in session 2: if the CV-selected value of an axis sits on
+an edge in ≥ 2 of 5 seeds (for a model or for its separable twin, which share grids), extend that end
+of the axis by one value, for both families. Each end of each axis is extended **at most once**. A
+second edge hit after an extension is reported in RESULTS.md as a flat CV surface rather than chased.
+In session 1, one round of extensions moved every model's mean CV AUPRC by at most 0.002.
 
 Details:
 
@@ -116,6 +119,23 @@ Details:
   gets an L2-regularisation axis instead.
 - The quantum SVMs get more configurations than the classical SVM (72 and 192 vs 60), and the VQC
   as many as the MLP (12). If anything, this favours the quantum side.
+- **Separable twins (session 2, experiment `creditcard_q8_separable`).** These are the
+  entanglement-ablation controls, in the spirit of Bowles et al. (arXiv:2403.07059):
+  - `QSVM-fidelity-sep` and `QSVM-projected-sep` use the same IQP map with its MultiRZ gates removed
+    (`pattern=[]`), so every state is a product state.
+  - `VQC-sep` replaces `StronglyEntanglingLayers` by layers of `Rot` gates with no CNOTs (same
+    parameter count). It reads out logit = a·mean_i⟨Z_i⟩ + b, because a single-qubit readout of a
+    product state would see one feature only. This VQC pair therefore differs in readout as well as
+    in entanglement.
+
+  The twins use the same rows, splits, folds and grids as their entangled originals and are compared
+  pair by pair with the §6 rule.
+- **Geometric difference (session 2, experiment `geometric_difference`).** For each seed and each
+  tuned quantum kernel, `qmlrc.geometry` computes the regularised geometric difference of Huang et
+  al. (arXiv:2011.01938, eqs. F19 and L8–L11). It is minimised over a linear kernel and nine Gaussian
+  kernels (γ = {0.25 … 64}/(n·Var)) and over λ ∈ {1e-5 … 0.1}, keeping only pairs whose
+  training-error term is below 0.045, exactly as in their Appendix L. The result is reported next to
+  √N.
 
 ## 5. Metrics and reporting
 
