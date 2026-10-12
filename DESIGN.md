@@ -84,7 +84,7 @@ configurations tried is reported in every results table.
 |---|---|---|---|
 | LogReg | classical | C ∈ {1e-4 … 1e3} (8) × class_weight ∈ {none, balanced} | 16 |
 | RBF-SVM | classical | C ∈ {0.001 … 10000} (8) × γ = f · `scale`, f ∈ {0.1, 0.3, 1, 3, 10} × class_weight (2) | 80 |
-| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3, 1} × max_leaf_nodes {3, 7, 31, 63} × min_samples_leaf {2, 5, 20, 50} × l2 {0, 1, 10, 100} | 256 |
+| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.01, 0.03, 0.1, 0.3, 1} × max_leaf_nodes {3, 7, 31, 63} × min_samples_leaf {2, 5, 20, 50} × l2 {0, 1, 10, 100} | 320 |
 | MLP | classical | hidden layers {(16), (64), (32, 32)} × alpha {1e-4, 1e-2, 1, 10} | 12 |
 | QSVM-fidelity | quantum | bandwidth s ∈ {0.02, 0.05, 0.1, 0.2, 0.5, 1} × C (8) × class_weight (2) | 96 |
 | QSVM-projected | quantum | s ∈ {0.03, 0.1, 0.3, 1} × γ-factor {0.1, 1, 10, 100} × C (8) × class_weight (2) | 256 |
@@ -104,8 +104,9 @@ made the last owed extensions:
 
 - SVM penalty C at both ends;
 - VQC depth 1;
-- GradBoost: the top of the learning rate (1) and L2 penalty (100), and the bottom of max_leaf_nodes
-  (3) and min_samples_leaf (2).
+- GradBoost: the top of the learning rate (1) and L2 penalty (100), and the bottom of the learning
+  rate (0.01), max_leaf_nodes (3) and min_samples_leaf (2). Every GradBoost axis end has now had
+  its extension, except the L2 penalty's lower end, which is 0.
 
 The GradBoost ends had hit their edge since session 2, in the main table or in the 29-feature run
 that shares its grid, and were missed then. Every axis end has now had its one extension, never hit

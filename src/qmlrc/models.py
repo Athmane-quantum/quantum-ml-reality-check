@@ -48,7 +48,7 @@ LOGREG_GRID = {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_w
 # class_weight is left out: it slows sklearn's histogram GBT ~10x on this data,
 # and reweighting matters little for a ranking metric such as AUPRC.
 GRADBOOST_GRID = {
-    "learning_rate": [0.03, 0.1, 0.3, 1.0],
+    "learning_rate": [0.01, 0.03, 0.1, 0.3, 1.0],
     "max_leaf_nodes": [3, 7, 31, 63],
     "min_samples_leaf": [2, 5, 20, 50],
     "l2_regularization": [0.0, 1.0, 10.0, 100.0],
