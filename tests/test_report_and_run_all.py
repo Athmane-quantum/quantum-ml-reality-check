@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from qmlrc import DISCLAIMER
@@ -25,3 +26,11 @@ def test_reading_is_flagged_stale_when_numbers_change(tmp_path: Path):
     path.write_text("<!-- results-hash: abc -->\nClassical wins.\n")
     assert load_reading(path, "abc") == "Classical wins."
     assert "STALE READING" in load_reading(path, "def")
+
+
+def test_edge_lines_flag_values_on_grid_edges():
+    from qmlrc.report import edge_lines
+
+    rows = [{"model": "M", "seed": s, "best_params": json.dumps({"a": a, "b": 2})} for s, a in enumerate([1, 1, 3])]
+    lines = edge_lines(rows, {"M": {"a": [1, 2, 3], "b": [1, 2, 3]}})
+    assert lines == ["- M: `a` took its lowest grid value (1) in 2/3 seeds."]

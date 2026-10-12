@@ -177,8 +177,10 @@ baselines matching or beating the quantum models.
   (Yu et al., arXiv:2607.01197 `[A]`). Network-intrusion detection: tuned random forests and XGBoost
   match or beat quantum models on all four datasets; two narrow effects survive multiple-testing
   correction (Gillani et al., arXiv:2608.18155 `[A]`).
-- **This repository** (credit-card fraud, 8 qubits, 5 seeds): see [RESULTS.md](RESULTS.md) and the
-  [README](README.md) summary.
+- **This repository** (credit-card fraud, 8 qubits, 5 seeds, session 1): no quantum model beats any
+  tuned classical model. The best classical models reach 0.918 AUPRC and the best quantum model 0.913,
+  a gap inside the seed-to-seed noise, and the variational classifier is last at 0.899. See
+  [RESULTS.md](RESULTS.md).
 
 ## Milestone 6: Quantum kernels that generalise, stay estimable, and are not classically easy
 
@@ -209,8 +211,9 @@ useful dataset has not been shown.
   (2025) `[A]`). See also Landman et al., arXiv:2210.13200 `[A]`.
 - A structured route: covariant quantum kernels for data with group structure, run on 27 qubits of a
   superconducting processor. Glick et al., arXiv:2105.03406, *Nat. Phys.* **20**, 479 (2024) `[A]`
-- **This repository:** the kernel-concentration table in [RESULTS.md](RESULTS.md) reproduces the
-  effect at 2–10 qubits on the fraud data.
+- **This repository:** on the fraud data at bandwidth s = 1, the mean off-diagonal fidelity-kernel
+  value falls from 0.75 (2 qubits) to 0.11 (10 qubits): the onset of concentration. At s ≤ 0.3 there
+  is none up to 10 qubits, and cross-validation always chose s ≤ 0.3 (RESULTS.md).
 
 ## Milestone 7: Loading classical data into quantum states (QRAM)
 
@@ -325,7 +328,7 @@ We split the question in two, because the answer is very different for each half
   Proven separations exist only for engineered tasks (M1). The "hard quantum process" and
   linear-algebra routes are refuted in general (M2, M3). Kernels and variational models run into
   concentration, barren plateaus and dequantisation (M4, M6). Data loading is unsolved (M7).
-  Careful benchmarks, ours included, find classical models ahead (M5).
+  The careful benchmarks we reviewed, ours included, find classical models ahead or level (M5).
 - **Quantum data and quantum-enhanced experiments: about 40 %.** Separations are
   information-theoretic and have been seen on hardware (M8). What is missing is a task scientists
   need, at scale, with reliable hardware (M9).

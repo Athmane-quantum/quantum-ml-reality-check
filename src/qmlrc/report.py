@@ -121,6 +121,54 @@ def comparison_lines(rows: list[dict]) -> list[str]:
     return out
 
 
+def edge_lines(rows: list[dict], axes: dict[str, dict[str, list]], min_seeds: int = 2) -> list[str]:
+    """Grid axes whose CV-selected value sat on an edge of the grid in at least ``min_seeds`` seeds."""
+    hits: dict[tuple, int] = defaultdict(int)
+    for r in rows:
+        params = json.loads(r["best_params"])
+        for axis, values in axes.get(r["model"], {}).items():
+            value = params.get(axis)
+            if value == min(values):
+                hits[(r["model"], axis, "lowest", min(values))] += 1
+            elif value == max(values):
+                hits[(r["model"], axis, "highest", max(values))] += 1
+    n_seeds = len({r["seed"] for r in rows})
+    return [
+        f"- {model}: `{axis}` took its {side} grid value ({value}) in {count}/{n_seeds} seeds."
+        for (model, axis, side, value), count in sorted(hits.items())
+        if count >= min_seeds
+    ]
+
+
+def verdict(diffs: np.ndarray) -> str:
+    """DESIGN.md section 6: a side wins if it is ahead on >= 80% of seeds and the mean paired
+    difference exceeds the standard deviation of the paired differences."""
+    n = len(diffs)
+    sd = diffs.std(ddof=1) if n > 1 else 0.0
+    if (diffs > 0).sum() >= 0.8 * n and diffs.mean() > sd:
+        return "quantum better"
+    if (diffs < 0).sum() >= 0.8 * n and -diffs.mean() > sd:
+        return "classical better"
+    return "no clear difference"
+
+
+def verdict_table(rows: list[dict]) -> str:
+    models = _by_model(rows)
+    classical = [m for m, rs in models.items() if rs[0]["family"] == "classical"]
+    quantum = [m for m, rs in models.items() if rs[0]["family"] == "quantum"]
+    lines = ["| Quantum model | " + " | ".join(f"vs {c}" for c in classical) + " |", "|---|" + "---|" * len(classical)]
+    for q in quantum:
+        qa = {r["seed"]: r["auprc"] for r in models[q]}
+        cells = []
+        for c in classical:
+            ca = {r["seed"]: r["auprc"] for r in models[c]}
+            seeds = sorted(set(qa) & set(ca))
+            d = np.array([qa[s_] - ca[s_] for s_ in seeds])
+            cells.append(f"{d.mean():+.3f} ({int((d > 0).sum())}/{len(d)}) · {verdict(d)}")
+        lines.append(f"| {q} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
 def concentration_table(rows: list[dict]) -> str:
     lines = [
         "| Qubits | Bandwidth s | Fidelity kernel: mean off-diag. | Fidelity kernel: std off-diag. | Haar-random mean 1/2^n | Projected kernel (gamma=1): std off-diag. |",
@@ -153,6 +201,7 @@ def load_reading(path: Path, current_hash: str) -> str:
 def render_results(context: dict) -> str:
     q8, full, conc = context["q8_rows"], context["full_rows"], context["conc_rows"]
     cfg = context["q8_config"]
+    conc_cfg = context["conc_config"]
     if cfg.dataset == "creditcard":
         source = "credit-card fraud, OpenML dataset 1597 (ULB / Worldline, 284,807 transactions, 492 frauds)"
         n_raw = 29
@@ -174,8 +223,9 @@ def render_results(context: dict) -> str:
         f"- Command: `{context['command']}`",
         f"- Date (UTC): {context['date']} · git commit: `{context['commit']}` · total wall-clock: {context['total_seconds'] / 60:.1f} min",
         f"- Machine: {context['platform']}, {context['cpus']} CPU threads visible. Each (seed, model) task ran in its own "
-        f"single-threaded process, {context.get('jobs', 1)} at a time, so the times below are single-thread wall-clock times "
-        "on this machine. For quantum models they are **classical simulation times**, not quantum hardware times.",
+        f"single-threaded process pinned to one core, {context.get('jobs', 1)} at a time, so the times below are single-core "
+        "wall-clock times on this machine. For quantum models they are **classical simulation times**, not quantum "
+        "hardware times.",
         f"- Versions: {context['versions']}",
         f"- Seeds: {', '.join(str(s) for s in cfg.seeds)} (each seed redraws the subsample, the split, the CV folds and the model initialisation).",
         f"- Results fingerprint: `{context['hash']}`",
@@ -202,6 +252,13 @@ def render_results(context: dict) -> str:
         "",
         *comparison_lines(q8),
         "",
+        "Decision rule of DESIGN.md §6, applied to every quantum/classical pair. Each cell: mean paired AUPRC "
+        "difference (quantum minus classical), seeds where the quantum model is ahead, verdict. A side is "
+        "declared better only if it is ahead on at least 4 of 5 seeds *and* its mean lead exceeds the standard "
+        "deviation of the paired differences.",
+        "",
+        verdict_table(q8),
+        "",
         "### Test AUPRC per seed",
         "",
         per_seed_table(q8),
@@ -213,6 +270,19 @@ def render_results(context: dict) -> str:
         "",
         params_table(q8),
         "",
+        "### Grid-edge check",
+        "",
+        "Axes whose CV-selected value sat on the edge of its grid in at least 2 of the seeds (DESIGN.md §4). "
+        "An edge hit can mean the grid is too narrow, or just that the CV surface is flat there.",
+        "",
+        f"Main table ({cfg.n_components} features):",
+        "",
+        *(edge_lines(q8, context["grid_axes"]) or ["- None."]),
+        "",
+        f"Reference run ({n_raw} features, classical only):",
+        "",
+        *(edge_lines(full, context["grid_axes"]) or ["- None."]),
+        "",
         f"## Reference: classical models on {n_raw} features",
         "",
         "Same rows, splits and folds as above, but without the PCA-to-8 step. This is **not** a like-for-like "
@@ -222,10 +292,14 @@ def render_results(context: dict) -> str:
         "",
         "## Kernel concentration vs qubit count",
         "",
-        "Off-diagonal values of the fidelity kernel over 300 credit-card rows (seed 0), and of the projected kernel "
-        "with a fixed gamma = 1. A spread (std) that shrinks towards 0 as qubits are added means the kernel "
-        "matrix approaches a constant, so an SVM can no longer tell the points apart without exponentially many shots "
-        "on hardware (here the simulation is exact, so the effect shows up as poorer generalisation instead).",
+        f"Off-diagonal entries of the fidelity kernel |⟨φ(x)|φ(x')⟩|² for {conc_cfg.n_samples} rows of the benchmark "
+        f"data (seed {conc_cfg.seed}; same preprocessing, with PCA to n components for n qubits), and of the "
+        "projected kernel with a fixed γ = 1. What to look for: *exponential concentration* "
+        "(Thanasilp et al., arXiv:2208.11060) is the off-diagonal mean and spread shrinking towards the Haar-random "
+        "value as qubits are added at a fixed bandwidth. The Gram matrix then drifts towards the identity, every "
+        "point looks unrelated to every other, and on hardware resolving the tiny values would take exponentially "
+        "many shots. The simulation here is exact, so the only cost is generalisation, which a smaller bandwidth s "
+        "can recover. The Haar column is the mean for fully random states.",
         "",
         concentration_table(conc),
         "",

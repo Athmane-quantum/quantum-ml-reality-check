@@ -23,6 +23,7 @@ from pathlib import Path
 from . import experiments as ex
 from .benchmark import CONCENTRATION_FIELDS, RESULT_FIELDS, run_benchmark, run_concentration
 from .data import load_pool
+from .models import grid_axes
 from .report import load_reading, read_csv, render_results, results_hash, write_csv
 
 PACKAGES = ["numpy", "scipy", "scikit-learn", "pennylane", "jax"]
@@ -89,7 +90,9 @@ def main(argv: list[str] | None = None) -> int:
         "full_rows": full_rows,
         "conc_rows": conc_rows,
         "q8_config": q8_cfg,
+        "conc_config": conc_cfg,
         "hash": fingerprint,
+        "grid_axes": grid_axes(),
         "reading": load_reading(root / "experiments" / "READING.md", fingerprint),
     }
     (root / "RESULTS.md").write_text(render_results(context))

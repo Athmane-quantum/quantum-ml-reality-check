@@ -40,6 +40,29 @@ FIDELITY_SCALES = [0.02, 0.05, 0.1, 0.2, 0.5, 1.0]
 PROJECTED_SCALES = [0.03, 0.1, 0.3, 1.0]
 PROJECTED_GAMMA_FACTORS = [0.1, 1.0, 10.0, 100.0]
 VQC_GRID = {"scale": [0.03, 0.1, 0.3, 1.0], "n_layers": [2, 4, 6]}
+LOGREG_GRID = {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_weight": CLASS_WEIGHT}
+# class_weight is left out: it slows sklearn's histogram GBT ~10x on this data,
+# and reweighting matters little for a ranking metric such as AUPRC.
+GRADBOOST_GRID = {
+    "learning_rate": [0.03, 0.1, 0.3],
+    "max_leaf_nodes": [7, 31, 63],
+    "min_samples_leaf": [5, 20, 50],
+    "l2_regularization": [0.0, 1.0, 10.0],
+}
+MLP_GRID = {"hidden_layer_sizes": [(16,), (64,), (32, 32)], "alpha": [1e-4, 1e-2, 1.0, 10.0]}
+
+
+def grid_axes() -> dict[str, dict[str, list]]:
+    """Numeric grid axes per model, keyed as in ``best_params``, for the grid-edge check."""
+    return {
+        "LogReg": {"C": LOGREG_GRID["C"]},
+        "RBF-SVM": {"C": SVM_C, "gamma_factor": RBF_GAMMA_FACTORS},
+        "GradBoost": dict(GRADBOOST_GRID),
+        "MLP": {"alpha": MLP_GRID["alpha"]},
+        "QSVM-fidelity": {"scale": FIDELITY_SCALES, "C": SVM_C},
+        "QSVM-projected": {"scale": PROJECTED_SCALES, "gamma_factor": PROJECTED_GAMMA_FACTORS, "C": SVM_C},
+        "VQC": dict(VQC_GRID),
+    }
 
 
 @dataclass
@@ -180,34 +203,18 @@ def classical_models() -> list[ModelSpec]:
     return [
         ModelSpec(
             "LogReg", "classical",
-            _sklearn_grid(
-                LogisticRegression(max_iter=5000),
-                {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_weight": CLASS_WEIGHT},
-            ),
+            _sklearn_grid(LogisticRegression(max_iter=5000), LOGREG_GRID),
             "L2 logistic regression; C x class_weight",
         ),
         ModelSpec("RBF-SVM", "classical", _rbf_svm, "SVC, RBF kernel; C x gamma x class_weight"),
         ModelSpec(
             "GradBoost", "classical",
-            _sklearn_grid(
-                HistGradientBoostingClassifier(),
-                # class_weight is left out: it slows sklearn's histogram GBT ~10x on this data,
-                # and reweighting matters little for a ranking metric such as AUPRC.
-                {
-                    "learning_rate": [0.03, 0.1, 0.3],
-                    "max_leaf_nodes": [7, 31, 63],
-                    "min_samples_leaf": [5, 20, 50],
-                    "l2_regularization": [0.0, 1.0, 10.0],
-                },
-            ),
+            _sklearn_grid(HistGradientBoostingClassifier(), GRADBOOST_GRID),
             "Histogram gradient-boosted trees; learning_rate x max_leaf_nodes x min_samples_leaf x l2",
         ),
         ModelSpec(
             "MLP", "classical",
-            _sklearn_grid(
-                MLPClassifier(max_iter=2000),
-                {"hidden_layer_sizes": [(16,), (64,), (32, 32)], "alpha": [1e-4, 1e-2, 1.0, 10.0]},
-            ),
+            _sklearn_grid(MLPClassifier(max_iter=2000), MLP_GRID),
             "Small multilayer perceptron (Adam); width x L2 penalty",
         ),
     ]

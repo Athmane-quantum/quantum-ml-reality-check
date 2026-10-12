@@ -1,5 +1,7 @@
 # Archived runs
 
+*Built by AI agents (Claude), directed and reviewed by Athmane Mekhalfia.*
+
 Raw results of earlier full runs, kept so that changes to the protocol stay visible. Current results
 live in `experiments/<experiment>/results.csv` and `RESULTS.md`.
 

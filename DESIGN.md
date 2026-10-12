@@ -14,8 +14,8 @@ It does **not** test computational quantum advantage. Every quantum model here u
 qubits and is simulated exactly on a laptop CPU in seconds. Nothing in this repository can show a
 quantum speed-up. What it can show is whether the *model classes* proposed in quantum machine
 learning (QML) have a useful inductive bias on a real dataset, compared with standard classical
-models. A quantum model that loses here would also lose on hardware (where noise and shot noise only
-make things worse); a quantum model that wins here would still need much more work before anyone
+models. A quantum model that loses here would be expected to lose on hardware too, where shot noise and
+gate noise add error. A quantum model that wins here would still need much more work before anyone
 could call it an advantage (see `FIELD_MAP.md`).
 
 ## 2. Framework: PennyLane (not Qiskit)
@@ -82,13 +82,20 @@ configurations tried is reported in every results table.
 
 | Model | Family | Grid | Configs |
 |---|---|---|---|
-| LogReg | classical | C ∈ {1e-3 … 1e3} (7) × class_weight ∈ {none, balanced} | 14 |
+| LogReg | classical | C ∈ {1e-4 … 1e3} (8) × class_weight ∈ {none, balanced} | 16 |
 | RBF-SVM | classical | C ∈ {0.01 … 1000} (6) × γ = f · `scale`, f ∈ {0.1, 0.3, 1, 3, 10} × class_weight (2) | 60 |
-| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3} × max_leaf_nodes {7, 31} × min_samples_leaf {5, 20} × l2 {0, 1} | 24 |
-| MLP | classical | hidden layers {(16), (64), (32, 32)} × alpha {1e-4, 1e-2, 1} | 9 |
-| QSVM-fidelity | quantum | bandwidth s ∈ {0.05, 0.1, 0.2, 0.5, 1} × C (6) × class_weight (2) | 60 |
-| QSVM-projected | quantum | s ∈ {0.1, 0.3, 1} × γ-factor {0.1, 1, 10} × C (6) × class_weight (2) | 108 |
-| VQC | quantum | s ∈ {0.1, 0.3, 1} × layers {2, 4} | 6 |
+| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3} × max_leaf_nodes {7, 31, 63} × min_samples_leaf {5, 20, 50} × l2 {0, 1, 10} | 81 |
+| MLP | classical | hidden layers {(16), (64), (32, 32)} × alpha {1e-4, 1e-2, 1, 10} | 12 |
+| QSVM-fidelity | quantum | bandwidth s ∈ {0.02, 0.05, 0.1, 0.2, 0.5, 1} × C (6) × class_weight (2) | 72 |
+| QSVM-projected | quantum | s ∈ {0.03, 0.1, 0.3, 1} × γ-factor {0.1, 1, 10, 100} × C (6) × class_weight (2) | 192 |
+| VQC | quantum | s ∈ {0.03, 0.1, 0.3, 1} × layers {2, 4, 6} | 12 |
+
+**Grid-edge rule.** These are the run-2 grids. In run 1 (smaller grids, archived in
+`experiments/archive/2026-10-12_run1/`), several models on *both* sides picked values on the edge of
+their grid. We then extended every axis whose CV-selected value sat on an edge in at least 2 of 5
+seeds, by one value, for classical and quantum models alike. The decision used only CV selections,
+never test scores. From now on: if the CV-selected value of an axis sits on an edge in ≥ 2 of 5 seeds,
+extend that axis before trusting the comparison.
 
 Details:
 
@@ -107,8 +114,8 @@ Details:
 - **GradBoost** has no `class_weight` axis: in scikit-learn 1.9.1 it made each fit about 10× slower
   on this data (measured during session 1), and reweighting matters little for a ranking metric. It
   gets an L2-regularisation axis instead.
-- The quantum models get as many or more configurations than the classical ones (60 vs 60 for the
-  SVMs, 108 for the projected kernel). If anything, this favours the quantum side.
+- The quantum SVMs get more configurations than the classical SVM (72 and 192 vs 60), and the VQC
+  as many as the MLP (12). If anything, this favours the quantum side.
 
 ## 5. Metrics and reporting
 
@@ -116,8 +123,13 @@ Details:
   ranking scores the fraud rate of the test set (0.10).
 - **Accuracy** (requested; easy to inflate: always answering "not fraud" scores 0.90) and **balanced
   accuracy**, both at the model's default threshold.
-- **Wall-clock time** per seed for tuning + final fit + test prediction, on the machine that produced
-  RESULTS.md. For quantum models this is *classical simulation time*.
+- **Wall-clock time** per seed for tuning + final fit + test prediction. Every (seed, model) task runs
+  in its own worker process limited to one thread (BLAS, OpenMP and XLA flags) and, on Linux,
+  **pinned to one CPU core**. Pinning matters because XLA keeps a few helper threads despite the
+  flags. Several tasks run side by side (`run_all --jobs`, default 4). Times are therefore
+  single-core and comparable across models, measured on the machine that produced RESULTS.md. On
+  macOS, which has no core pinning, they are only approximately single-core. For quantum models this
+  is *classical simulation time*.
 - **5 seeds** (0–4). Each seed redraws the subsample, the split, the CV folds and the model
   initialisation. We report mean ± sample standard deviation and **paired per-seed differences**.
 
@@ -149,7 +161,8 @@ quantum advantage: the model was simulated classically.
   only hurt the quantum models (see FIELD_MAP.md, milestones on kernels and hardware).
 - One VQC design (single-qubit readout, fixed optimiser settings). Other designs (data re-uploading,
   trainable input scaling) may do better; see NEXT_SESSION.md.
-- Timing is measured on one 4-thread container; numbers move with hardware and load.
+- Timing is measured on single pinned cores of one 4-core container, with up to 4 tasks in parallel;
+  numbers move with hardware and load.
 - The unsupervised preprocessing (scaler + PCA) is fitted on the whole training set before the CV
   folds are cut. No labels are involved, the test set is never touched, and it is the same for every
   model.
