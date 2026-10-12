@@ -84,7 +84,7 @@ configurations tried is reported in every results table.
 |---|---|---|---|
 | LogReg | classical | C ∈ {1e-4 … 1e3} (8) × class_weight ∈ {none, balanced} | 16 |
 | RBF-SVM | classical | C ∈ {0.001 … 10000} (8) × γ = f · `scale`, f ∈ {0.1, 0.3, 1, 3, 10} × class_weight (2) | 80 |
-| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3, 1} × max_leaf_nodes {7, 31, 63} × min_samples_leaf {5, 20, 50} × l2 {0, 1, 10, 100} | 144 |
+| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3, 1} × max_leaf_nodes {3, 7, 31, 63} × min_samples_leaf {2, 5, 20, 50} × l2 {0, 1, 10, 100} | 256 |
 | MLP | classical | hidden layers {(16), (64), (32, 32)} × alpha {1e-4, 1e-2, 1, 10} | 12 |
 | QSVM-fidelity | quantum | bandwidth s ∈ {0.02, 0.05, 0.1, 0.2, 0.5, 1} × C (8) × class_weight (2) | 96 |
 | QSVM-projected | quantum | s ∈ {0.03, 0.1, 0.3, 1} × γ-factor {0.1, 1, 10, 100} × C (8) × class_weight (2) | 256 |
@@ -94,15 +94,23 @@ configurations tried is reported in every results table.
 `experiments/archive/2026-10-12_run1/`), several models on *both* sides picked values on the edge of
 their grid. We then extended every axis whose CV-selected value sat on an edge in at least 2 of 5
 seeds, by one value, for classical and quantum models alike. The decision used only CV selections,
-never test scores. The rule, as clarified in session 2: if the CV-selected value of an axis sits on
-an edge in ≥ 2 of 5 seeds (for a model or for its separable twin, which share grids), extend that end
-of the axis by one value, for both families. Each end of each axis is extended **at most once**. A
+never test scores. The rule, as clarified in sessions 2 and 3: if the CV-selected value of an axis sits on
+an edge in ≥ 2 of 5 seeds, extend that end of the axis by one value, for both families. Hits count
+in every experiment that uses the same grid: the main table, the separable twins, the finite-shot
+models and the 29-feature reference run. Each end of each axis is extended **at most once**. A
 second edge hit after an extension is reported in RESULTS.md as a flat CV surface rather than chased.
 In session 1, one round of extensions moved every model's mean CV AUPRC by at most 0.002. Session 3
-made the last owed extensions: C at both ends, VQC depth 1, and the top of the GradBoost learning rate
-(1) and L2 penalty (100). The two GradBoost axes had hit their upper edge since session 2 and were
-missed then. Every axis end has now had its one extension, never hit an edge, or sits at a natural
-limit (one VQC layer), so remaining edge hits are reported and not extended.
+made the last owed extensions:
+
+- SVM penalty C at both ends;
+- VQC depth 1;
+- GradBoost: the top of the learning rate (1) and L2 penalty (100), and the bottom of max_leaf_nodes
+  (3) and min_samples_leaf (2).
+
+The GradBoost ends had hit their edge since session 2, in the main table or in the 29-feature run
+that shares its grid, and were missed then. Every axis end has now had its one extension, never hit
+an edge, or sits at a natural limit (one VQC layer), so remaining edge hits are reported and not
+extended.
 
 Details:
 

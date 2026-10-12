@@ -9,7 +9,7 @@ from qmlrc.models import (
 TINY_VQC = {"scale": [0.3], "n_layers": [1, 2]}
 SPECS = (classical_models() + quantum_models(5, TINY_VQC) + vqc_control_models(5, TINY_VQC)
          + separable_models(5, TINY_VQC) + shot_models((100,)))
-EXPECTED_CONFIGS = {"LogReg": 16, "RBF-SVM": 80, "GradBoost": 144, "MLP": 12,
+EXPECTED_CONFIGS = {"LogReg": 16, "RBF-SVM": 80, "GradBoost": 256, "MLP": 12,
                     "QSVM-fidelity": 96, "QSVM-projected": 256, "VQC": 2, "VQC-mean": 2,
                     "QSVM-fidelity-sep": 96, "QSVM-projected-sep": 256, "VQC-sep": 2,
                     "QSVM-fidelity@100": 96, "QSVM-projected@100": 256}

@@ -49,8 +49,8 @@ LOGREG_GRID = {"C": [1e-4, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0], "class_w
 # and reweighting matters little for a ranking metric such as AUPRC.
 GRADBOOST_GRID = {
     "learning_rate": [0.03, 0.1, 0.3, 1.0],
-    "max_leaf_nodes": [7, 31, 63],
-    "min_samples_leaf": [5, 20, 50],
+    "max_leaf_nodes": [3, 7, 31, 63],
+    "min_samples_leaf": [2, 5, 20, 50],
     "l2_regularization": [0.0, 1.0, 10.0, 100.0],
 }
 MLP_GRID = {"hidden_layer_sizes": [(16,), (64,), (32, 32)], "alpha": [1e-4, 1e-2, 1.0, 10.0]}
