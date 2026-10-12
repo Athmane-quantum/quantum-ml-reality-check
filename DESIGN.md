@@ -40,8 +40,8 @@ Reasons:
 4. **One dependency, Apache-2.0 licence, installable with pip.**
 
 Qiskit would be the natural choice for running on IBM hardware later. Kernel values are computed
-from exact state vectors (no shot noise); shot noise and hardware noise are on the roadmap
-(`NEXT_SESSION.md`).
+from exact state vectors. Experiment `creditcard_q8_shots` adds simulated shot noise (§4); hardware
+noise is not modelled (§7).
 
 ## 3. Data
 
@@ -83,14 +83,14 @@ configurations tried is reported in every results table.
 | Model | Family | Grid | Configs |
 |---|---|---|---|
 | LogReg | classical | C ∈ {1e-4 … 1e3} (8) × class_weight ∈ {none, balanced} | 16 |
-| RBF-SVM | classical | C ∈ {0.01 … 1000} (6) × γ = f · `scale`, f ∈ {0.1, 0.3, 1, 3, 10} × class_weight (2) | 60 |
-| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3} × max_leaf_nodes {7, 31, 63} × min_samples_leaf {5, 20, 50} × l2 {0, 1, 10} | 81 |
+| RBF-SVM | classical | C ∈ {0.001 … 10000} (8) × γ = f · `scale`, f ∈ {0.1, 0.3, 1, 3, 10} × class_weight (2) | 80 |
+| GradBoost | classical | `HistGradientBoostingClassifier`: learning_rate {0.03, 0.1, 0.3, 1} × max_leaf_nodes {7, 31, 63} × min_samples_leaf {5, 20, 50} × l2 {0, 1, 10, 100} | 144 |
 | MLP | classical | hidden layers {(16), (64), (32, 32)} × alpha {1e-4, 1e-2, 1, 10} | 12 |
-| QSVM-fidelity | quantum | bandwidth s ∈ {0.02, 0.05, 0.1, 0.2, 0.5, 1} × C (6) × class_weight (2) | 72 |
-| QSVM-projected | quantum | s ∈ {0.03, 0.1, 0.3, 1} × γ-factor {0.1, 1, 10, 100} × C (6) × class_weight (2) | 192 |
-| VQC | quantum | s ∈ {0.03, 0.1, 0.3, 1} × layers {2, 4, 6} | 12 |
+| QSVM-fidelity | quantum | bandwidth s ∈ {0.02, 0.05, 0.1, 0.2, 0.5, 1} × C (8) × class_weight (2) | 96 |
+| QSVM-projected | quantum | s ∈ {0.03, 0.1, 0.3, 1} × γ-factor {0.1, 1, 10, 100} × C (8) × class_weight (2) | 256 |
+| VQC | quantum | s ∈ {0.03, 0.1, 0.3, 1} × layers {1, 2, 4, 6} | 16 |
 
-**Grid-edge rule.** These are the run-2 grids. In run 1 (smaller grids, archived in
+**Grid-edge rule.** These are the final grids (session 3). In run 1 (smaller grids, archived in
 `experiments/archive/2026-10-12_run1/`), several models on *both* sides picked values on the edge of
 their grid. We then extended every axis whose CV-selected value sat on an edge in at least 2 of 5
 seeds, by one value, for classical and quantum models alike. The decision used only CV selections,
@@ -98,7 +98,11 @@ never test scores. The rule, as clarified in session 2: if the CV-selected value
 an edge in ≥ 2 of 5 seeds (for a model or for its separable twin, which share grids), extend that end
 of the axis by one value, for both families. Each end of each axis is extended **at most once**. A
 second edge hit after an extension is reported in RESULTS.md as a flat CV surface rather than chased.
-In session 1, one round of extensions moved every model's mean CV AUPRC by at most 0.002.
+In session 1, one round of extensions moved every model's mean CV AUPRC by at most 0.002. Session 3
+made the last owed extensions: C at both ends, VQC depth 1, and the top of the GradBoost learning rate
+(1) and L2 penalty (100). The two GradBoost axes had hit their upper edge since session 2 and were
+missed then. Every axis end has now had its one extension, never hit an edge, or sits at a natural
+limit (one VQC layer), so remaining edge hits are reported and not extended.
 
 Details:
 
@@ -117,19 +121,35 @@ Details:
 - **GradBoost** has no `class_weight` axis: in scikit-learn 1.9.1 it made each fit about 10× slower
   on this data (measured during session 1), and reweighting matters little for a ranking metric. It
   gets an L2-regularisation axis instead.
-- The quantum SVMs get more configurations than the classical SVM (72 and 192 vs 60), and the VQC
-  as many as the MLP (12). If anything, this favours the quantum side.
-- **Separable twins (session 2, experiment `creditcard_q8_separable`).** These are the
-  entanglement-ablation controls, in the spirit of Bowles et al. (arXiv:2403.07059):
+- The quantum SVMs get more configurations than the classical SVM (96 and 256 vs 80), and the VQC
+  more than the MLP (16 vs 12). If anything, this favours the quantum side.
+- **Entanglement ablation (experiment `creditcard_q8_ablation`; sessions 2–3).** Twins that differ
+  only in entanglement, in the spirit of Bowles et al. (arXiv:2403.07059):
   - `QSVM-fidelity-sep` and `QSVM-projected-sep` use the same IQP map with its MultiRZ gates removed
-    (`pattern=[]`), so every state is a product state.
-  - `VQC-sep` replaces `StronglyEntanglingLayers` by layers of `Rot` gates with no CNOTs (same
-    parameter count). It reads out logit = a·mean_i⟨Z_i⟩ + b, because a single-qubit readout of a
-    product state would see one feature only. This VQC pair therefore differs in readout as well as
-    in entanglement.
+    (`pattern=[]`), so every state is a product state. Their twins are `QSVM-fidelity` and
+    `QSVM-projected` of the main table.
+  - `VQC-sep` (layers of `Rot` gates, no CNOTs, same parameter count) is paired with `VQC-mean`, an
+    entangled VQC (`StronglyEntanglingLayers`). Both have exactly the same readout and training: the
+    mean of ⟨Z_i⟩, standardised with batch statistics during training and frozen training-set
+    statistics for prediction, then logit = exp(c)·o + b. A mean readout is needed because a
+    single-qubit readout of a product state sees one feature only. Standardisation and the
+    log-scale weight are needed because at small bandwidths the readout is nearly constant, and
+    otherwise the output scale never grows. That is what made the session-2 separable VQC unstable;
+    its results are archived. The main table's `VQC` (⟨Z_0⟩ readout) is unchanged and is not part
+    of this pair.
 
-  The twins use the same rows, splits, folds and grids as their entangled originals and are compared
-  pair by pair with the §6 rule.
+  All twins use the same rows, splits, folds and grids, and are compared pair by pair with the §6
+  rule.
+- **Finite-shot kernels (session 3, experiment `creditcard_q8_shots`).** The two kernel SVMs are
+  re-run with kernels estimated from R ∈ {100, 1 000, 10 000} shots (`qmlrc/shots.py`), then
+  re-tuned on the noisy kernels with the same grids.
+  - Fidelity entries are Binomial(R, k)/R, the frequency of the all-zeros outcome of the overlap
+    circuit. The training Gram matrix is symmetric with unit diagonal and is clipped to the nearest
+    positive semi-definite matrix.
+  - Projected-kernel Pauli expectations are 2·Binomial(R, (1 + ⟨P⟩)/2)/R − 1, drawn independently
+    per component; on hardware, qubits measured in the same shot would be correlated.
+  - The noise is seeded from (seed, R, train/test, bandwidth index). This is shot noise only: no gate
+    noise or readout error.
 - **Geometric difference (session 2, experiment `geometric_difference`).** For each seed and each
   tuned quantum kernel, `qmlrc.geometry` computes the regularised geometric difference of Huang et
   al. (arXiv:2011.01938, eqs. F19 and L8–L11). It is minimised over a linear kernel and nine Gaussian
@@ -177,9 +197,10 @@ quantum advantage: the model was simulated classically.
 - Fraud prevalence is artificially raised to 10 %.
 - The PCA-to-8 step throws information away for every model (the 29-feature reference run measures
   how much).
-- Noiseless, infinite-shot simulation: real hardware would add shot noise and gate noise, which can
-  only hurt the quantum models (see FIELD_MAP.md, milestones on kernels and hardware).
-- One VQC design (single-qubit readout, fixed optimiser settings). Other designs (data re-uploading,
+- No gate noise or readout error anywhere. Shot noise is modelled only for the two kernel SVMs
+  (experiment `creditcard_q8_shots`); the VQCs use exact expectation values. Real hardware would be
+  expected to do worse (see FIELD_MAP.md, milestones 6 and 9).
+- Few VQC designs (⟨Z_0⟩ or standardised mean readout, fixed optimiser settings). Other designs (data re-uploading,
   trainable input scaling) may do better; see NEXT_SESSION.md.
 - Timing is measured on single pinned cores of one 4-core container, with up to 4 tasks in parallel;
   numbers move with hardware and load.

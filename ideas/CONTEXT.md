@@ -15,11 +15,17 @@ What is established:
 1. On ordinary CLASSICAL data, careful benchmarks find tuned classical models ahead of or level with
    quantum models. Bowles, Ahmed & Schuld (arXiv:2403.07059) tested 12 QML models on 160 datasets;
    removing entanglement usually did not hurt.
-2. Our own benchmark: credit-card fraud data, 8 qubits, exact simulation. No quantum model beats tuned
-   classical models (RBF-SVM, gradient boosting, MLP), and unentangled versions of the quantum
-   kernels score the same. The geometric difference between the quantum kernels and classical
-   Gaussian kernels is g ≈ 1.3–4.9, while an advantage needs g of order √N ≈ 37. By Huang et al.'s
-   criterion (arXiv:2011.01938), a classical kernel is guaranteed competitive on these inputs.
+2. Our own benchmark: credit-card fraud data, 8 qubits, exact simulation. The quantum models tested
+   were IQP-feature-map fidelity and projected kernels and a variational classifier.
+   - No quantum model beats tuned classical models (RBF-SVM, gradient boosting, MLP).
+   - Unentangled versions of all three quantum models score the same.
+   - The geometric difference between the quantum kernels and classical Gaussian kernels is
+     g ≈ 1.3–4.9, while an advantage needs g of order √N ≈ 37. By Huang et al.'s criterion
+     (arXiv:2011.01938), a classical kernel is guaranteed competitive on these inputs.
+   - With realistic shot noise (100 to 10,000 shots per kernel entry), the fidelity kernel gets
+     worse. Its small tuned bandwidth puts every kernel value near 1, so noise swamps the
+     differences between values. The projected kernel holds up and needs about 300× fewer circuit
+     runs.
 3. "Power of data" (arXiv:2011.01938): classical ML trained on data can predict functions that are
    hard to compute, so hard quantum circuits do not automatically give a learning advantage.
 4. Exponential speed-ups of quantum linear-algebra ML (recommendation systems, PCA) were dequantised

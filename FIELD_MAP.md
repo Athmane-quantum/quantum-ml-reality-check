@@ -2,8 +2,9 @@
 
 *Built by AI agents (Claude), directed and reviewed by Athmane Mekhalfia.*
 
-**Last updated:** 2026-10-12 (session 2: literature watch for arXiv submissions from 2026-09-28 to
-2026-10-12; no status or progress changes, new evidence added under milestones 1, 2, 5, 6, 7, 8). **Question:** what is left to do before quantum computers give
+**Last updated:** 2026-10-12. Session 2 ran a literature watch for arXiv submissions from 2026-09-28
+to 2026-10-12, adding evidence under milestones 1, 2, 5, 6, 7 and 8. Session 3 added this
+repository's finite-shot and VQC-ablation results. No status or progress estimate changed. **Question:** what is left to do before quantum computers give
 a *useful* advantage in machine learning (ML), meaning better results than the best classical
 methods on a task someone cares about?
 
@@ -200,10 +201,13 @@ baselines matching or beating the quantum models.
   tuned classical model. The best classical models reach 0.918 AUPRC and the best quantum model 0.913,
   a gap inside the seed-to-seed noise, and the variational classifier is last at 0.899. See
   [RESULTS.md](RESULTS.md).
-- **This repository, session 2.** Removing the entangling gates from both quantum kernels leaves
-  their AUPRC unchanged (fidelity 0.912 vs 0.911; projected 0.917 vs 0.913, within noise). This
-  reproduces Bowles et al.'s "entanglement does not help" finding on real data. The VQC pair was
-  inconclusive, because the unentangled VQC we built trains unreliably.
+- **This repository, sessions 2–3.** Removing entanglement leaves every quantum model's AUPRC
+  unchanged, within noise:
+  - fidelity kernel: 0.912 without vs 0.911 with;
+  - projected kernel: 0.917 vs 0.913;
+  - VQC with the same standardised readout on both sides: 0.902 vs 0.890.
+
+  This reproduces Bowles et al.'s "entanglement does not help" finding on real data.
 
 ## Milestone 6: Quantum kernels that generalise, stay estimable, and are not classically easy
 
@@ -245,6 +249,14 @@ useful dataset has not been shown.
 - **This repository:** on the fraud data at bandwidth s = 1, the mean off-diagonal fidelity-kernel
   value falls from 0.75 (2 qubits) to 0.11 (10 qubits): the onset of concentration. At s ≤ 0.3 there
   is none up to 10 qubits, and cross-validation always chose s ≤ 0.3 (RESULTS.md).
+- **This repository, session 3: finite shots.**
+  - The fidelity kernel loses about 0.06 AUPRC at 100 shots per entry, and still trails the exact
+    kernel on all 5 seeds at 10,000 shots (0.888 vs 0.911).
+  - The projected kernel matches its exact version at 10,000 shots.
+  - *Our reading:* the small bandwidths that avoid concentration make every fidelity-kernel value
+    close to 1, so shot noise swamps the small differences between them. Escaping concentration by
+    bandwidth trades one fragility for another. This is consistent with Thanasilp et al.'s warning
+    on shot cost.
 
 ## Milestone 7: Loading classical data into quantum states (QRAM)
 
@@ -328,6 +340,10 @@ depth, and classical simulation keeps catching up with "beyond-classical" experi
   arXiv:2007.14384 `[A]`
 - Shot cost: an exponentially concentrated kernel needs exponentially many shots to estimate.
   Thanasilp et al., arXiv:2208.11060 `[F]`
+- **This repository, session 3.** At 1,000 shots per entry, estimating the kernels of a single
+  fitted fidelity-kernel model on 1,400 + 600 points takes about 1.8 × 10⁹ circuit executions; a
+  projected-kernel model takes 6 × 10⁶. That is before any hyperparameter search, for an
+  8-qubit model that a laptop simulates exactly in seconds.
 - A 127-qubit "utility" experiment (*Nature* **618**, 500 (2023)) was simulated classically, more
   accurately than the quantum processor, with tensor networks and belief propagation. Tindall et al.,
   arXiv:2306.14887, *PRX Quantum* **5**, 010308 (2024) `[A]`. A 2026 review covers this ongoing
