@@ -51,8 +51,8 @@ Athmane.
 - **Code.** `pytest`: 26 passed locally; CI green on GitHub for the pushed commits (see the final
   check below).
 - **Reproducibility.** The concentration experiment gave identical numbers in runs 1 and 2. A third,
-  final run from the committed code must reproduce run 2's fingerprint `6f91668eaad26227`; its outcome
-  is recorded in the last bullet of this entry.
+  final run from the committed code reproduced run 2's fingerprint exactly (see the final check
+  below).
 
 ### Results
 
@@ -108,4 +108,6 @@ families). Test AUPRC: RBF-SVM 0.918, MLP 0.918, GradBoost 0.917, LogReg 0.908, 
 
 ### Final check (end of session 1)
 
-- Final full run from commit `FINAL_COMMIT`: fingerprint `FINAL_HASH`. FINAL_STATUS
+- Final full run (`python -m qmlrc.run_all`, 7.6 min, 4 workers) from the clean commit `9aa266c`: fingerprint `6f91668eaad26227`, **identical to run 2**. Every metric column of both result CSVs is byte-identical; only the timing column moved (by less than 0.5 s per task). The committed RESULTS.md comes from this run.
+- `pytest`: 26 passed. GitHub Actions `tests` workflow: green on `a09652d` and `9aa266c`.
+- `python scripts/check_sources.py`: 44 cited arXiv IDs, 0 to look at.
