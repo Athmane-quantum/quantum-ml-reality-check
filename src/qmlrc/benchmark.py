@@ -39,8 +39,10 @@ def models_for(cfg: BenchmarkConfig) -> list[ModelSpec]:
     return specs
 
 
-# Each (seed, model) task runs in its own single-threaded worker process. Timings are therefore
-# single-thread wall-clock times, comparable across models, and several tasks run side by side.
+# Each (seed, model) task runs in a worker process limited to one thread and, on Linux, pinned to its
+# own CPU core (XLA keeps a few helper threads even when told not to, so pinning is what actually
+# enforces "one core"). Timings are therefore single-core wall-clock times, comparable across
+# models, and several tasks run side by side.
 _SINGLE_THREAD_ENV = {
     "OMP_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
@@ -52,9 +54,11 @@ _WORKER: dict = {}
 _COST = {"VQC": 10, "GradBoost": 3, "MLP": 3, "QSVM-projected": 2, "QSVM-fidelity": 1}
 
 
-def _init_worker(X_pool, y_pool) -> None:
+def _init_worker(X_pool, y_pool, cores) -> None:
     from threadpoolctl import threadpool_limits
 
+    if cores is not None:
+        os.sched_setaffinity(0, {cores.get()})
     threadpool_limits(1)
     _WORKER["pool"] = (X_pool, y_pool)
     _WORKER["splits"] = {}
@@ -91,12 +95,17 @@ def run_benchmark(
     """Run every (seed, model) pair in ``jobs`` single-threaded worker processes."""
     names = [s.name for s in models_for(cfg)]
     tasks = sorted(((seed, m) for seed in cfg.seeds for m in names), key=lambda t: -_COST.get(t[1], 0))
+    ctx = mp.get_context("spawn")
+    cores = None
+    if hasattr(os, "sched_setaffinity") and jobs <= len(os.sched_getaffinity(0)):
+        cores = ctx.Queue()
+        for core in sorted(os.sched_getaffinity(0))[:jobs]:
+            cores.put(core)
     saved = {k: os.environ.get(k) for k in _SINGLE_THREAD_ENV}
     os.environ.update(_SINGLE_THREAD_ENV)  # inherited by the spawned workers
     try:
         with ProcessPoolExecutor(
-            max_workers=jobs, mp_context=mp.get_context("spawn"),
-            initializer=_init_worker, initargs=(X_pool, y_pool),
+            max_workers=jobs, mp_context=ctx, initializer=_init_worker, initargs=(X_pool, y_pool, cores),
         ) as pool:
             futures = {pool.submit(_run_task, cfg, seed, m): (seed, m) for seed, m in tasks}
             rows = []
