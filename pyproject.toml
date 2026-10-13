@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qmlrc"
+version = "0.1.0"
+description = "Quantum ML reality check: simulated QML models vs tuned classical baselines, plus a verified field map."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Athmane Mekhalfia" }]
+requires-python = ">=3.13,<3.14"
+# Exact pins: results in RESULTS.md were produced with these versions.
+# requirements-lock.txt pins the full dependency tree.
+dependencies = [
+    "numpy==2.5.4",
+    "scipy==1.18.1",
+    "scikit-learn==1.9.1",
+    "pennylane==0.45.1",
+    "pennylane-lightning==0.45.0",
+    "jax==0.7.2",
+    "jaxlib==0.7.2",
+    "threadpoolctl==3.7.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
