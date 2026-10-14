@@ -1,0 +1,13 @@
+seed 1: N_train=1400, max|x| train=18.7, kurtosis-ish frac |x|>3: 0.016  [11s]
+kernels done [56s]; mean offdiag fid s=1: 0.172, s=0.3: 0.867
+
+
+DOSE projected s0=1.0: min g=13.22 vs g8, lam=0.0001 (sqrtN=37.4); top eig=174.67
+   f spread: sd train=0.181, sd test=0.182, ratio=1.00; test balance=0.51; corr(test f, nearest-train f)=n/a [65s]
+--- proj s0=1.0 OOS: Bayes acc (clean labels vs noisy test) = 0.890
+   QSVM-proj sel=s=1.0,gf=0.1  acc=0.842  AUPRC=0.869  wall=25s
+   RBF-SVM   sel=f=3.0  acc=0.782  AUPRC=0.835  wall=15s
+   GBT       sel={'l2_regularization': 10, 'learning_rate': 0.1, 'max_leaf_nodes': 7, 'min_samples_leaf': 20}  acc=0.805  AUPRC=0.846  wall=4s
+   MLP       sel={'alpha': 0.0001, 'hidden_layer_sizes': (64,)}  acc=0.768  AUPRC=0.833  wall=22s
+   IQP-angle sel=s=1.0,f=3  acc=0.802  AUPRC=0.849  wall=38s
+   [169s]

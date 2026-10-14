@@ -177,7 +177,7 @@ Circuit executions needed to estimate the kernels of *one* fitted model (1,400 t
 
 ## Geometric difference (Huang et al.)
 
-For each seed, the Gram matrix of each tuned quantum kernel on the 1,400 training rows is compared with a linear kernel and nine Gaussian kernels, following Appendix L of Huang et al. (arXiv:2011.01938): both normalised to trace N, regularised geometric difference g = √‖√K_Q K_C (K_C + λI)⁻² √K_Q‖, minimised over classical kernels and λ with training-error term g_tra < 0.045. Their bound gives s_C ≤ g² s_Q: when g is much smaller than √N, a classical kernel model is guaranteed to predict about as well as the quantum one *for any labels on these inputs*; only g of order √N leaves room for a quantum prediction advantage.
+For each seed, the Gram matrix of each tuned quantum kernel on the 1,400 training rows is compared with a linear kernel and nine Gaussian kernels, following Appendix L of Huang et al. (arXiv:2011.01938): both normalised to trace N, regularised geometric difference g = √‖√K_Q K_C (K_C + λI)⁻² √K_Q‖, minimised over classical kernels and λ with training-error term g_tra < 0.045. Their bound gives s_C ≤ g² s_Q, so the prediction-error bound of a classical kernel model is at most g times that of the quantum one, *for any labels on these inputs*. When g is much smaller than √N, this rules out a large quantum prediction advantage, though not a modest one; only g of order √N leaves room for a large advantage.
 
 | Quantum kernel model | g, mean ± sd over seeds | g / √N | √N | Closest classical kernel (most frequent) | Seeds |
 |---|---|---|---|---|---|
@@ -286,9 +286,12 @@ differs only in entanglement:
 
 - g ranges from 1.3 to 4.9 per seed and kernel. Means: fidelity 4.2, projected 2.7, and their
   unentangled twins 3.4 and 1.5. That is against √N = 37.4.
-- By Huang et al.'s criterion (arXiv:2011.01938), a classical kernel, usually the widest Gaussian
-  tested, is guaranteed to predict about as well for any labels on these inputs.
-- This is *why* no quantum kernel can win here.
+- Huang et al.'s bound (arXiv:2011.01938) gives s_C ≤ g² s_Q. The prediction-error bound of the best
+  classical kernel, usually the widest Gaussian tested, is therefore at most g times that of the
+  quantum kernel, for any labels on these inputs.
+- With g ≤ 4.9, far below √N, this rules out a *large* quantum advantage on these inputs, though not
+  a modest one. This is why no quantum kernel can win by much here; the benchmark itself found no
+  win at all.
 
 **5. Other points.**
 
@@ -308,7 +311,7 @@ projected kernels, hardware-efficient VQCs) on this real tabular task at 8 qubit
 
 - they have no edge over tuned classical models;
 - entanglement contributes nothing;
-- their kernel geometry leaves no room for an advantage;
+- their kernel geometry leaves no room for a large advantage;
 - measurement noise makes them worse.
 
 It says nothing about quantum data, problem-specific encodings or larger systems. Those are the

@@ -1,0 +1,41 @@
+kernels 4.0s
+   binary-label complexity: s_Q=457013 min s_C=748 ratio=0.00 (N=800)
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+('fid', 0.1): g=2.99 (vs gaussian x0.25, lam=0.001) sqrtN=28.3 | Q[fid s=0.3]=0.762 RBF[x0.3]=0.804 GBT=0.754 MLP=0.658 | 39s
+   binary-label complexity: s_Q=94118 min s_C=729 ratio=0.01 (N=800)
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+('proj', 0.1): g=1.54 (vs gaussian x0.5, lam=0.001) sqrtN=28.3 | Q[proj s=0.3]=0.812 RBF[x0.03]=0.821 GBT=0.800 MLP=0.821 | 72s
+   binary-label complexity: s_Q=134043 min s_C=738 ratio=0.01 (N=800)
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+('fid', 0.3): g=3.58 (vs gaussian x1, lam=0.001) sqrtN=28.3 | Q[fid s=0.1]=0.787 RBF[x0.3]=0.775 GBT=0.700 MLP=0.767 | 104s
+   binary-label complexity: s_Q=35737 min s_C=735 ratio=0.02 (N=800)
+('proj', 0.3): g=3.40 (vs gaussian x1, lam=0.001) sqrtN=28.3 | Q[proj s=0.3]=0.792 RBF[x0.03]=0.779 GBT=0.738 MLP=0.775 | 137s
+   binary-label complexity: s_Q=790 min s_C=799 ratio=1.01 (N=800)
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+('fid', 1.0): g=3.44 (vs gaussian x4, lam=0.001) sqrtN=28.3 | Q[fid s=1.0]=0.783 RBF[x10]=0.479 GBT=0.533 MLP=0.583 | 175s
+   binary-label complexity: s_Q=18917 min s_C=764 ratio=0.04 (N=800)
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+/home/user/quantum-ml-reality-check/.venv/lib/python3.13/site-packages/sklearn/neural_network/_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (2000) reached and the optimization hasn't converged yet.
+  warnings.warn(
+('proj', 1.0): g=10.82 (vs gaussian x2, lam=0.0001) sqrtN=28.3 | Q[proj s=1.0]=0.812 RBF[x1]=0.646 GBT=0.758 MLP=0.621 | 209s

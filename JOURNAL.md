@@ -316,3 +316,78 @@ Every experiment ran in under 10 minutes; the longest, the ablation, took 9.5 mi
 
 The field map, the benchmark with its controls, and the idea pipeline are in place. From session 4
 the project moves to idea rounds (NEXT_SESSION.md).
+
+## 2026-10-12 to 2026-10-14: Session 4, first idea round
+
+**Agent:** Claude (Claude Code on the web), continuing the same conversation.
+**Branch:** `claude/new-session-rwyqim`. Athmane opened
+[PR #1](https://github.com/Athmane-quantum/quantum-ml-reality-check/pull/1) from it into `main`.
+Its auto-generated description had wrong counts (26 tests, 44 sources, three experiments) and a
+truncated result section, so Claude rewrote it with the final numbers.
+
+### Inputs
+
+- Athmane brought 32 ideas from four external assistants (8 each). They are labelled batches A–D
+  in the order pasted; Athmane asked that they not be attributed.
+- Claude added 8 of its own (I-33 to I-40), written after reading the 32.
+- The ChatGPT deduplication step was not run; Claude grouped the 40 ideas into nine themes instead.
+- Athmane also asked that the two session prompts be kept in the repository: they are now in
+  `PROMPTS.md`, copied verbatim from the file Athmane uploaded.
+
+### Process
+
+1. The 23 arXiv IDs cited by the external batches were resolved in one arXiv API query. All exist.
+   Two are misused: arXiv:2407.07754 cited for the wrong topic, and arXiv:2111.05451 attributed to
+   the wrong authors.
+2. A workflow ran one triage agent per theme (reference checks, novelty search on alphaXiv and the
+   arXiv API, technical checks, K1–K7, a sharpened best version). An adversarial reviewer then
+   tried to refute each best version.
+   - 17 agents, 704 tool calls, about 3.5 hours.
+   - A first launch passed placeholder text instead of the theme list and failed before starting
+     any agent. It was fixed by having agents read the cards from a file.
+3. Claude resolved all 251 distinct arXiv IDs in the agents' outputs through the arXiv API. All
+   exist, and every title the agents recorded matches.
+4. Claude wrote [ideas/round-01.md](ideas/round-01.md) (summary, shortlist, recommendation) and
+   [ideas/round-01-cards.md](ideas/round-01-cards.md) (the 40 full cards), and filled the
+   IDEAS.md register.
+   - The agents' raw output is in `ideas/round-01-raw.json`.
+   - Their scratch check scripts are in `ideas/round-01-checks/`. They are unreviewed and
+     indicative, not repository results.
+
+### Outcome
+
+- **Statuses:** 8 shortlisted, 20 rejected (18 at triage, 2 in review) and 12 merged.
+- **Shortlisted:** every shortlisted best version was weakened in review, with concrete fixes listed.
+  One, idea 38, is shortlisted at low priority. It was not part of a reviewed best version.
+- **Recommendation to Athmane:**
+  - R1: two-copy vs single-copy learning, a certified finite-n table plus noise thresholds (M8).
+  - R2: calibrate the benchmark with engineered labels, plus the symmetry test (M2, M6).
+  - R3: audit the oracle-sketching claim of arXiv:2604.07639 (M1).
+- **Reference quality:** no assistant invented an arXiv ID. The common failure was a real paper
+  cited for a claim it does not make.
+- **New kill criterion K8** (access-model artefacts), added to IDEAS.md.
+- **Lessons for future generators** are added to `ideas/CONTEXT.md` (item 10).
+
+### Corrections to our own text
+
+The T6 reviewer pointed out that READING.md, README.md, FIELD_MAP.md (M2), `geometry.py`,
+`report.py` and `ideas/CONTEXT.md` overstated Huang et al.'s bound. They said that with
+g ≈ 1.3–4.9 a classical kernel "is guaranteed to predict about as well for any labels".
+
+- The bound gives s_C ≤ g² s_Q: the classical error bound is at most g times the quantum one.
+- So it rules out a *large* advantage, not a modest one.
+- All six places now say this. RESULTS.md was rebuilt with `--report-only`; the fingerprint is
+  unchanged (`7abe3ac53d8d7b0f`), since no number changed.
+
+Also during the round, Claude first marked idea 38 as killed in review with the rest of its theme.
+The review did not address it, so it was corrected to "shortlisted, low priority" before anything
+was committed.
+
+### No status or progress change in FIELD_MAP.md
+
+The round surfaced recent papers relevant to M1, M2, M4 and M8, listed in round-01.md. They will be
+opened and added in the next literature watch, not on the strength of the agents' reading alone.
+
+### Next
+
+Athmane chooses among R1–R3 (NEXT_SESSION.md). Nothing is built before that choice.

@@ -1,0 +1,24 @@
+seed 0: N_train=1400, max|x| train=14.3, kurtosis-ish frac |x|>3: 0.015  [11s]
+kernels done [53s]; mean offdiag fid s=1: 0.195, s=0.3: 0.871
+
+
+DOSE projected s0=1.0: min g=13.10 vs g8, lam=0.0001 (sqrtN=37.4); top eig=171.71
+   f spread: sd train=0.183, sd test=0.18, ratio=0.98; test balance=0.48; corr(test f, nearest-train f)=n/a [61s]
+--- proj s0=1.0 OOS: Bayes acc (clean labels vs noisy test) = 0.895
+   QSVM-proj sel=s=1.0,gf=0.1  acc=0.867  AUPRC=0.857  wall=24s
+   RBF-SVM   sel=f=1.0  acc=0.792  AUPRC=0.819  wall=18s
+   GBT       sel={'l2_regularization': 10, 'learning_rate': 0.1, 'max_leaf_nodes': 7, 'min_samples_leaf': 20}  acc=0.807  AUPRC=0.833  wall=4s
+   MLP       sel={'alpha': 1, 'hidden_layer_sizes': (32, 32)}  acc=0.792  AUPRC=0.821  wall=18s
+   IQP-angle sel=s=1.0,f=1  acc=0.813  AUPRC=0.824  wall=44s
+   [169s]
+
+
+DOSE projected s0=0.3: min g=5.14 vs g0.5, lam=0.0001 (sqrtN=37.4); top eig=26.38
+   f spread: sd train=0.0331, sd test=0.0326, ratio=0.98; test balance=0.51; corr(test f, nearest-train f)=n/a [178s]
+--- proj s0=0.3 OOS: Bayes acc (clean labels vs noisy test) = 0.883
+   QSVM-proj sel=s=0.1,gf=100.0  acc=0.823  AUPRC=0.865  wall=29s
+   RBF-SVM   sel=f=3.0  acc=0.818  AUPRC=0.870  wall=17s
+   GBT       sel={'l2_regularization': 0, 'learning_rate': 0.1, 'max_leaf_nodes': 31, 'min_samples_leaf': 20}  acc=0.770  AUPRC=0.835  wall=3s
+   MLP       sel={'alpha': 1, 'hidden_layer_sizes': (32, 32)}  acc=0.800  AUPRC=0.858  wall=20s
+   IQP-angle sel=s=1.0,f=1  acc=0.823  AUPRC=0.870  wall=40s
+   [286s]

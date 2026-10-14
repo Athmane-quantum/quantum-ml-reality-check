@@ -86,9 +86,10 @@ whether an advantage is even possible on a dataset, and engineered datasets that
 simulation. No natural dataset is known to pass it.
 
 - Huang et al. show that classical ML **with data** can predict functions that are classically hard to
-  compute. They give prediction-error bounds and the "geometric difference" g between kernels: when g
-  is small, a classical model is guaranteed to be competitive. The fidelity quantum kernel tends to
-  the identity matrix as the effective dimension grows, so it generalises poorly. They introduce
+  compute. They give prediction-error bounds and the "geometric difference" g between kernels. The
+  classical model's error bound is at most g times the quantum model's, so a small g rules out a
+  large quantum advantage for any labels (a modest one is not excluded). The fidelity quantum
+  kernel tends to the identity matrix as the effective dimension grows, so it generalises poorly. They introduce
   *projected* quantum kernels. On **engineered** datasets the projected kernel beats the best tuned
   classical model by more than 20 % in accuracy (simulations up to 30 qubits), and this advantage
   shrinks as the training set grows. arXiv:2011.01938, *Nat. Commun.* **12**, 2631 (2021) `[F]`

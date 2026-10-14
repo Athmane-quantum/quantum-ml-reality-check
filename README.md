@@ -46,9 +46,10 @@ Three controls explain this result:
   - fidelity kernel: 0.912 without vs 0.911 with;
   - projected kernel: 0.917 vs 0.913;
   - variational classifier with identical readouts: 0.902 vs 0.890.
-- **The geometry leaves no room for an advantage.** The geometric difference of Huang et al. between
-  the tuned quantum kernels and classical Gaussian kernels is 1.3–4.9. An advantage would need g of
-  order √N ≈ 37, for any labels on this data.
+- **The geometry leaves no room for a large advantage.** The geometric difference of Huang et al.
+  between the tuned quantum kernels and classical Gaussian kernels is 1.3–4.9. By their bound, a
+  classical kernel's error bound is then at most a factor g worse than the quantum kernel's, for any
+  labels on this data. A large advantage would need g of order √N ≈ 37.
 - **Measurement noise makes it worse.** With realistic finite shots, the fidelity kernel drops to
   0.848 at 100 shots and stays below its exact value at 10,000 shots (0.888). The projected kernel
   holds up (0.917 at 10,000 shots) and needs about 300× fewer circuit executions.
@@ -114,7 +115,8 @@ src/qmlrc/
   run_all.py      python -m qmlrc.run_all
 experiments/      raw results (CSV), run metadata, hand-written reading, archived runs
 scripts/          check_sources.py (+ snapshot of cited arXiv titles), arxiv_search.py (novelty checks)
-ideas/            context and prompts to paste into other AI assistants (see IDEAS.md)
+ideas/            context and prompts for other AI assistants; idea rounds (round-01*.md, raw output, checks)
+PROMPTS.md        the two session prompts (initialisation and weekly session) that direct this project
 tests/            pytest suite (run by GitHub Actions on every push)
 ```
 
@@ -128,6 +130,12 @@ difference and kernel concentration. The project now moves to its idea phase:
    `ideas/PROMPT_GENERATOR.md`. One ChatGPT conversation merges them (`ideas/PROMPT_NOVELTY_FILTER.md`).
    Claude then checks every novelty claim against arXiv and applies the kill criteria. Athmane picks
    which shortlisted ideas to test.
+   - **Round 1** (2026-10-14, [ideas/round-01.md](ideas/round-01.md)): 40 ideas, from four external
+     assistants and Claude. 8 were shortlisted, 20 rejected and 12 merged. Three experiments are
+     recommended:
+     - quantum memory on quantum data;
+     - a calibration of this benchmark;
+     - an audit of a 2026 claim of advantage on classical data.
 2. **Tests.** A chosen idea becomes an experiment in this benchmark, with tuned classical baselines.
    Its result is reported whether it wins or loses.
 3. **Weekly upkeep.** A literature watch updates FIELD_MAP.md; the journal and NEXT_SESSION.md are

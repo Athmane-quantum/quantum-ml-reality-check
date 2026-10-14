@@ -1,0 +1,5 @@
+n=8, m=87 candidate Paulis, true support [((7, 'Y'),), ((3, 'X'), (4, 'Y')), ((2, 'X'), (3, 'X')), ((0, 'X'), (1, 'Z')), ((1, 'X'),), ((5, 'X'), (6, 'X'))]
+
+tau=0.25: Var f=0.031; Walsh variance with span<=w: w1:0.543 w2:0.984 w3:0.997 w4:1.000 w5:1.000 w6:1.000 w7:1.000 w8:1.000
+  N=  16  Q-feat LASSO: 0.089  local-Walsh LASSO: 0.074  RBF-KRR: 0.636  GradBoost: 0.564
+  N=  64  Q-feat LASSO: 0.013  local-Walsh LASSO: 0.014  RBF-KRR: 0.063  GradBoost: 0.049

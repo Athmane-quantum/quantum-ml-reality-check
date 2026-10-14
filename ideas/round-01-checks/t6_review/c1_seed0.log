@@ -1,0 +1,8 @@
+kernels [16s]
+RBF f=0.1: min_s g(K_Q(s)||K_RBF) = 9.22 at s=1.0, lam=0.0001;  g(K_Q(s=1)||K_RBF) = 9.22 (lam=0.0001)
+RBF f=0.3: min_s g(K_Q(s)||K_RBF) = 10.79 at s=1.0, lam=0.0001;  g(K_Q(s=1)||K_RBF) = 10.79 (lam=0.0001)
+RBF f=1.0: min_s g(K_Q(s)||K_RBF) = 15.48 at s=1.0, lam=0.0001;  g(K_Q(s=1)||K_RBF) = 15.48 (lam=0.0001)
+RBF f=3.0: min_s g(K_Q(s)||K_RBF) = 19.35 at s=1.0, lam=0.0001;  g(K_Q(s=1)||K_RBF) = 19.35 (lam=0.0001)
+RBF f=10.0: min_s g(K_Q(s)||K_RBF) = 20.66 at s=1.0, lam=0.0001;  g(K_Q(s=1)||K_RBF) = 20.66 (lam=0.0001)
+C1 generator RBF f=1.0, adversary K_Q(s=1), g=15.48, lam=0.0001: QSVM tuned over s -> s=0.02 acc=0.890; QSVM fixed s=1 acc=0.715; RBF-SVM -> f=0.1 acc=0.890; Bayes=0.913 [180s]
+C1 generator RBF f=0.3, adversary K_Q(s=1), g=10.79, lam=0.0001: QSVM tuned over s -> s=0.05 acc=0.878; QSVM fixed s=1 acc=0.702; RBF-SVM -> f=0.1 acc=0.888; Bayes=0.902 [209s]

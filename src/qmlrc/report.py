@@ -401,9 +401,10 @@ def render_results(context: dict) -> str:
         "a linear kernel and nine Gaussian kernels, following Appendix L of Huang et al. (arXiv:2011.01938): "
         "both normalised to trace N, regularised geometric difference "
         "g = √‖√K_Q K_C (K_C + λI)⁻² √K_Q‖, minimised over classical kernels and λ with training-error term "
-        "g_tra < 0.045. Their bound gives s_C ≤ g² s_Q: when g is much smaller than √N, a classical kernel "
-        "model is guaranteed to predict about as well as the quantum one *for any labels on these inputs*; "
-        "only g of order √N leaves room for a quantum prediction advantage.",
+        "g_tra < 0.045. Their bound gives s_C ≤ g² s_Q, so the prediction-error bound of a classical kernel model "
+        "is at most g times that of the quantum one, *for any labels on these inputs*. When g is much smaller "
+        "than √N, this rules out a large quantum prediction advantage, though not a modest one; only g of order "
+        "√N leaves room for a large advantage.",
         "",
         geometry_table(geo),
         "",
