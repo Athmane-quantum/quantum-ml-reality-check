@@ -337,16 +337,17 @@ truncated result section, so Claude rewrote it with the final numbers.
 ### Process
 
 1. The 23 arXiv IDs cited by the external batches were resolved in one arXiv API query. All exist.
-   Two are misused: arXiv:2407.07754 cited for the wrong topic, and arXiv:2111.05451 attributed to
-   the wrong authors.
+   Two are misidentified: arXiv:2407.07754 is the wrong paper for its claim, and arXiv:2111.05451 is
+   attributed to the wrong authors. Claim-level misuse, found later in triage, was far more common
+   (round-01.md, "Reference quality by batch").
 2. A workflow ran one triage agent per theme (reference checks, novelty search on alphaXiv and the
    arXiv API, technical checks, K1–K7, a sharpened best version). An adversarial reviewer then
    tried to refute each best version.
    - 17 agents, 704 tool calls, about 3.5 hours.
    - A first launch passed placeholder text instead of the theme list and failed before starting
      any agent. It was fixed by having agents read the cards from a file.
-3. Claude resolved all 251 distinct arXiv IDs in the agents' outputs through the arXiv API. All
-   exist, and every title the agents recorded matches.
+3. Claude resolved all 256 distinct arXiv IDs in the agents' outputs through the arXiv API (251
+   new-style, 5 old-style `quant-ph/`). All exist, and every title the agents recorded matches.
 4. Claude wrote [ideas/round-01.md](ideas/round-01.md) (summary, shortlist, recommendation) and
    [ideas/round-01-cards.md](ideas/round-01-cards.md) (the 40 full cards), and filled the
    IDEAS.md register.
@@ -357,8 +358,11 @@ truncated result section, so Claude rewrote it with the final numbers.
 ### Outcome
 
 - **Statuses:** 8 shortlisted, 20 rejected (18 at triage, 2 in review) and 12 merged.
-- **Shortlisted:** every shortlisted best version was weakened in review, with concrete fixes listed.
-  One, idea 38, is shortlisted at low priority. It was not part of a reviewed best version.
+- **Shortlisted:** every reviewed best version was weakened in review, with concrete fixes listed.
+  Two shortlisted ideas were not reviewed:
+  - I-37, the symmetry test bundled with T6 (the T6 review covered only idea 33);
+  - I-38, at low priority. It is listed among the T7 best version's sources, but its diagnostic was
+    not in that design and the reviewer did not address it.
 - **Recommendation to Athmane:**
   - R1: two-copy vs single-copy learning, a certified finite-n table plus noise thresholds (M8).
   - R2: calibrate the benchmark with engineered labels, plus the symmetry test (M2, M6).
@@ -374,14 +378,39 @@ The T6 reviewer pointed out that READING.md, README.md, FIELD_MAP.md (M2), `geom
 `report.py` and `ideas/CONTEXT.md` overstated Huang et al.'s bound. They said that with
 g ≈ 1.3–4.9 a classical kernel "is guaranteed to predict about as well for any labels".
 
-- The bound gives s_C ≤ g² s_Q: the classical error bound is at most g times the quantum one.
-- So it rules out a *large* advantage, not a modest one.
-- All six places now say this. RESULTS.md was rebuilt with `--report-only`; the fingerprint is
-  unchanged (`7abe3ac53d8d7b0f`), since no number changed.
+- That sentence follows Huang et al.'s own summary, but the precise statement is the bound.
+- The bound gives s_C ≤ g² s_Q: the classical error bound is at most g times the quantum one, for
+  any labels.
+- So a small g excludes the √N-scale separation that a large provable advantage needs. It does not
+  exclude a gap of up to a factor g between the bounds.
+- Claude's first correction ("rules out a large advantage, not a modest one") still overstated it.
+  The critic pass below caught that.
+- The final wording is now in seven places: README.md, READING.md, FIELD_MAP.md M2 (twice),
+  `geometry.py`, `report.py` and `ideas/CONTEXT.md`. RESULTS.md was rebuilt with `--report-only`;
+  the fingerprint is unchanged (`7abe3ac53d8d7b0f`), since no number changed.
 
 Also during the round, Claude first marked idea 38 as killed in review with the rest of its theme.
 The review did not address it, so it was corrected to "shortlisted, low priority" before anything
 was committed.
+
+### Critic pass
+
+After the first commit of the round (`b753996`), a read-only workflow of two agents checked the
+write-up against the raw output and read Huang et al. to check the corrected wording. It returned
+31 findings, all fixed in the next commit. They were:
+
+- the overstated Huang correction (above);
+- idea 37 wrongly described as reviewed;
+- the noiseless constants wrongly called open;
+- T8 left out as a second expected-advantage test;
+- the sensing gap described as a constant factor where the sources support "polynomial";
+- QCNN claims generalised beyond Cong et al.'s QCNN;
+- a miscounted citation example;
+- uneven cost estimates;
+- K8 citing T9, which is a baseline asymmetry rather than an access one;
+- smaller wording points.
+
+The PR #1 description was corrected to match.
 
 ### No status or progress change in FIELD_MAP.md
 

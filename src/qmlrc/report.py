@@ -402,9 +402,9 @@ def render_results(context: dict) -> str:
         "both normalised to trace N, regularised geometric difference "
         "g = √‖√K_Q K_C (K_C + λI)⁻² √K_Q‖, minimised over classical kernels and λ with training-error term "
         "g_tra < 0.045. Their bound gives s_C ≤ g² s_Q, so the prediction-error bound of a classical kernel model "
-        "is at most g times that of the quantum one, *for any labels on these inputs*. When g is much smaller "
-        "than √N, this rules out a large quantum prediction advantage, though not a modest one; only g of order "
-        "√N leaves room for a large advantage.",
+        "is at most g times that of the quantum one, *for any labels on these inputs*. A g much smaller than √N "
+        "excludes the √N-scale separation that a large provable advantage needs, though not a gap of up to a "
+        "factor g between the two bounds.",
         "",
         geometry_table(geo),
         "",

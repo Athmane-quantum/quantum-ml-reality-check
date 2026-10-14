@@ -53,17 +53,22 @@ into nine themes and merged duplicates during triage.
    - not feasible or not decisive.
 
    Most skeptics ran exact computations to check the proposal's own numbers.
-4. **Citation audit (Claude).** All 251 distinct arXiv IDs that appear in the agents' outputs were
-   resolved again through the arXiv API. All exist, and the titles the agents recorded match.
+4. **Citation audit (Claude).** All 256 distinct arXiv IDs in the agents' outputs were resolved
+   again through the arXiv API: 251 new-style IDs and 5 old-style `quant-ph/` IDs. All exist, and
+   the titles the agents recorded match.
+5. **Read-only critic pass.** Two more agents checked this write-up and the wording corrections
+   against the raw output and against Huang et al.'s paper before the final commit. Their 31
+   findings were all fixed (JOURNAL.md, session 4).
 
-Total: 17 agents (9 triage, 8 review; one theme had nothing to review), 704 tool calls.
+Total for the round: 17 agents (9 triage, 8 review; one theme had nothing to review) and 704 tool
+calls, from the workflow run log.
 
 ## Outcome
 
 | Status | Count | Ideas |
 |---|---|---|
-| **SHORTLISTED**, weakened in review (each needs its listed fixes before it is built) | 7 | 08, 31, 33, 34, 36, 37, 39 |
-| **SHORTLISTED**, low priority, not part of a reviewed best version | 1 | 38 |
+| **SHORTLISTED**, weakened in review (each needs its listed fixes before it is built) | 6 | 08, 31, 33, 34, 36, 39 |
+| **SHORTLISTED** at triage, not adversarially reviewed | 2 | 37, 38 (low priority) |
 | **REJECTED** at triage | 18 | 01, 04, 05, 06, 07, 10, 11, 12, 13, 15, 16, 20, 23, 24, 25, 27, 32, 40 |
 | **REJECTED** in adversarial review (shortlisted at triage, then killed) | 2 | 02, 35 |
 | **MERGED** into another idea | 12 | 03, 09, 14, 17, 18, 19, 21, 22, 26, 28, 29, 30 |
@@ -76,7 +81,8 @@ The rejected ideas fell into these groups (several fit more than one; details pe
   - I-06: for a single fixed observable, quantum memory gives no advantage.
   - I-15: direct fidelity estimation is itself a measure-first classical learner.
   - I-16: parameter-shift gradients cannot reduce environment interactions.
-- **Solvable by a lookup table or brute force at ≤ 10 qubits:** 01, 03, 05, 13.
+- **Solvable by a lookup table or brute force at ≤ 10 qubits:** 01, 05, 13. Idea 03 was merged
+  into 31 for the same reason.
 - **Already known, textbook, or adding nothing testable (K7):** 10, 23, 24, 25, 27, 32, 40.
 - **Not testable as stated (K6):** 07 (no architecture named; a 6-qubit check cannot decide
   simulability) and 12 (exact simulation of a known 6-qubit chain is not a learning task).
@@ -96,9 +102,12 @@ Verdicts on the references each idea cited:
 | Claude | 12 | 1 | 0 | 0 | 0 |
 
 No assistant invented an arXiv ID. The common failure is a **real paper cited for a claim it does
-not make**. For example, arXiv:2608.13521 (Kannan et al., a single qubit without entanglement) was
-cited three times for GHZ-probe sensing, and arXiv:2503.20879 was cited for hidden-shift concept
-classes it does not contain. Every one of the 40 minimal tests, Claude's included, had at least one
+not make**. Two examples:
+
+- arXiv:2608.13521 (Kannan et al.) uses one sensor mode plus one ancilla qubit, with no entangled
+  multimode probe. It was cited three times for claims it does not make: twice for GHZ-probe sensing
+  (I-10, I-27) and once for sparse temporal Fourier components (I-18).
+- arXiv:2503.20879 was cited for hidden-shift concept classes it does not contain. Every one of the 40 minimal tests, Claude's included, had at least one
 technical problem as first written.
 
 ## What the round taught
@@ -108,54 +117,84 @@ These are cross-cutting lessons. Each is backed by the cards and their verified 
 1. **Many claimed advantages come from the access model.** The usual pattern is that the classical
    side gets less access than is physically meaningful:
    - **Periodic neurons (T4).** The quantum example states of arXiv:2503.20879 presuppose an oracle
-     that can also answer classical membership queries. The reviewer checked that every
-     statistical query that paper uses can be emulated that way (identities to about 1e-12).
+     that can also answer classical membership queries. The reviewer re-read every observable that
+     paper uses and confirmed that each can be emulated by such queries. The triage prototype's
+     numerical identities hold to about 1e-12. The claim holds for the paper's coordinate-local
+     observables and for classical label noise.
    - **Learning observables (I-20).** The quantum learner is told the evolution U and the classical
      baselines are not.
-   - **Oracle sketching (T9).** In arXiv:2604.07639's natural-data numerics, a per-test-point
-     quantum procedure is compared with model-building classical baselines.
+   This suggests a new kill criterion, **K8**, added to IDEAS.md (from T4 and T5).
 
-   This suggests a new kill criterion, **K8**, added to IDEAS.md.
+   A related problem is a baseline asymmetry rather than an access asymmetry: the access model was
+   judged fair, but the comparison was not like for like. The case is **oracle sketching (T9)**: in
+   arXiv:2604.07639's natural-data numerics, a per-test-point quantum procedure is compared with
+   model-building classical baselines. That falls under K4 and under resource accounting.
 2. **Where separations are real, they are proven theorems already shown on hardware.** Two cases:
    - quantum memory for learning states (T1; arXiv:2112.00778);
    - ancilla-assisted Pauli-channel learning (T8; arXiv:2108.08488, arXiv:2408.03376).
 
-   What is still open at ≤ 10 qubits are the constants and the noise thresholds. In one reviewer's
-   exact computation for the arXiv:2112.00778 task, the two-copy advantage over the best
-   single-copy learner disappears at local depolarizing noise of about λ ≈ 0.29–0.33 for n = 2–5.
-   This number is indicative and would be the subject of experiment R1.
-3. **Exponential sensing gaps need fine-tuned signals (T2).** For natural, low-dimensional signal
-   families, the gap is bounded by parametric identifiability: a model-aware classical learner gets
-   within a constant factor (arXiv:2504.21745).
-4. **Symmetry is not a quantum resource for kernels (T6, I-37).** If a kernel is covariant,
-   averaging it over the group gives the same gain to the classical and the quantum kernel. A
-   one-page projection lemma, still to be written out and checked, formalises this. In a scratch
-   check on an S₆-invariant task, the group-averaged RBF kernel scored 0.86 against 0.80 for the
-   group-averaged quantum kernel.
-5. **Phase recognition at ≤ 10 qubits shows no real copy advantage (T7).** A single-copy entangling
-   measurement (QCNN-type) gains at most a constant factor of about 2 over the best product-basis
-   learner (arXiv:2109.05909). One reviewer's exact n = 9 computation gave 0.99–1.00×.
+   The noiseless finite-n constants already follow from the theorems: eq. D38 of arXiv:2112.00778
+   for T1, and a Cramér–Rao calculation (a constant of about 14) for T8's structured family. What is
+   still open at ≤ 10 qubits is noise: interface, memory, gate and readout errors.
+
+   In one reviewer's exact computation for the arXiv:2112.00778 task, the two-copy advantage over
+   the best *non-adaptive* single-copy learner disappears at interface depolarizing noise of about
+   λ ≈ 0.29–0.33 for n = 2–5. That learner is derandomised mutually-unbiased-basis cycling, and
+   adaptive learners could lower the threshold. This is indicative; experiment R1 would establish
+   it.
+3. **Exponential sensing gaps need fine-tuned signals (T2).** Take low-dimensional signal families
+   whose parameters do not change with the number of measurement windows. For these, a model-aware
+   classical learner pays at most a polynomial price (arXiv:2504.21745, Prop. 2 and Thm D.4), and
+   one reviewer's exact Fisher checks gave bounded ratios. An exponential gap needs fine-tuned
+   families, or parameters that scale with system size (arXiv:2410.05878).
+4. **Working hypothesis: symmetry is probably not a quantum resource for kernels (T6, I-37; not
+   adversarially reviewed).**
+   - The claim: for a covariant embedding, averaging over the group gives the classical and the
+     quantum kernel the same gain.
+   - The basis: a projection lemma that is not yet written out or checked, plus a one-seed scratch
+     check on an S₆-invariant task (100 test points). There the group-averaged RBF kernel scored 0.86
+     against 0.80 for the group-averaged quantum kernel.
+   - I-37 is the test.
+5. **Phase recognition at ≤ 10 qubits shows no real copy advantage (T7).**
+   - For Cong et al.'s QCNN (arXiv:1810.03787), the output can be reproduced from two product bases
+     with at most twice the copies, at any depth (arXiv:2109.05909). Other QCNNs need a few more
+     bases, still a constant at ≤ 10 qubits.
+   - One reviewer's exact n = 9 computation gave 0.99–1.00× for the measurement underlying these
+     QCNNs, against the best product basis.
 6. **A correction to our own text.** We had written that with g ≈ 1.3–4.9 a classical kernel is
-   "guaranteed to predict about as well for any labels". That overstates Huang et al.'s bound. The
-   bound gives s_C ≤ g² s_Q: the classical error bound is at most g times the quantum one. That
-   rules out a *large* advantage for any labels, not a modest one. The wording is fixed in
-   READING.md, README.md, FIELD_MAP.md (M2), geometry.py, report.py and ideas/CONTEXT.md.
+   "guaranteed to predict about as well for any labels". The reviewer noted that this follows
+   Huang et al.'s own summary sentence. The precise statement is the bound.
+   - The bound gives s_C ≤ g² s_Q: the classical error bound is at most g times the quantum one,
+     for any labels.
+   - A small g therefore excludes the √N-scale separation that a large provable advantage needs.
+   - It does not exclude a gap of up to a factor of about g between the bounds, which matters when
+     the quantum bound is not already small.
+   - A first correction in this session ("rules out a large advantage") still overstated this. The
+     critic pass caught it.
+   - Both are now fixed in READING.md, README.md, FIELD_MAP.md (M2, two places), geometry.py,
+     report.py and ideas/CONTEXT.md.
 
 ## The shortlist
 
-Every entry below survived triage. Every one was also **weakened** in adversarial review: the
-review lists concrete fixes, all of which are in round-01-cards.md. Idea 38 is also shortlisted, at
-low priority. It is a cheap diagnostic that applies `qmlrc.geometry` to quantum-state inputs at
-matched copy budgets, and it was not part of a reviewed best version.
+Every best version below survived triage and was then **weakened** in adversarial review. The
+review lists concrete fixes, all of which are in round-01-cards.md.
 
-| Theme | Best version (ideas) | Kind | Milestone | Rough cost |
+- I-37, the symmetry test bundled with T6, was not reviewed; the T6 review covered only idea 33.
+- Idea 38 is also shortlisted, at low priority. It is a cheap diagnostic that applies
+  `qmlrc.geometry` to quantum-state inputs at matched copy budgets. It is listed among the T7 best
+  version's sources, but its diagnostic was not in that design and the reviewer did not address it.
+
+Costs are the triage estimates, before the review's fixes. Lines include tests and experiment
+wiring.
+
+| Theme | Best version (ideas) | Kind | Milestone | Code / CPU |
 |---|---|---|---|---|
-| T1 | Two-copy Bell sampling vs the best single-copy learners on the arXiv:2112.00778 task, n = 1–5: certified finite-n table plus noise thresholds (34, with 09 and 17) | replication + new noise thresholds | M8 (M9) | ~350 lines + tests; analytic plus density-matrix simulation; minutes |
-| T6 | Positive control: labels engineered from the quantum kernel's geometry, on the fraud inputs (33). Plus the symmetry test against group-averaged classical kernels (37, with 14) | calibration + killing experiment | M2, M6 | ~200 lines; reuses the benchmark; must be split to stay under 10 min per experiment |
-| T9 | Audit of the oracle-sketching size claim (arXiv:2604.07639) with a per-test-point, low-memory classical baseline that its authors did not run (08) | killing experiment on a new claim | M1 | ~300 lines + tests; public text datasets |
-| T8 | Ancilla-assisted vs ancilla-free Pauli-channel learning, recast as an ε-scaling test (Bell sampling ε⁻² vs the best ancilla-free sparse learners ε⁻⁴), a point left open by arXiv:2606.20535 (36, with 19 and 26) | replication + open scaling question | M8 | ~800 lines |
-| T4 | Theorem plus verification code: every statistical query used by arXiv:2503.20879 can be emulated by classical membership queries (39, with 21 and 29) | theory + check | M1 | ~300 lines |
-| T3 | Matched-control generative benchmark at 6–10 qubits: does any structure-agnostic Born machine beat tuned lookup tables, chains and complex MPS? (31, with 03) | killing experiment | M4 | ~550 lines, about 12 experiments |
+| T1 | Two-copy Bell sampling vs the strongest single-copy learners on the arXiv:2112.00778 task, n = 1–5: a certified finite-n table plus noise thresholds (34, with 09 and 17) | replication + new noise thresholds | M8 (M9) | ~600 lines / ~5–8 CPU-min (more for the adaptive arm under noise) |
+| T6 | Positive control: labels engineered from the quantum kernel's geometry, on the fraud inputs (33). The symmetry test against group-averaged classical kernels is bundled with it (37, with 14; not reviewed) | calibration (+ killing experiment) | M2, M6 | ~250 lines (+~120 for I-37) / ~100–120 CPU-min, split into experiments of a few minutes |
+| T9 | Audit of the oracle-sketching size claim (arXiv:2604.07639), with a per-test-point, low-memory classical baseline that its authors did not run (08) | killing experiment on a new claim | M1 | ~480 lines / ~25–30 CPU-min (more once QOS is simulated at matched budgets) |
+| T8 | Ancilla-assisted vs ancilla-free Pauli-channel learning, recast as an ε-scaling test. Bell sampling scales as ε⁻²; the best known ancilla-free learners for sparse non-local Lindbladians scale as ε⁻⁴ (arXiv:2607.23044, abstract). The point is left open by arXiv:2606.20535 (36, with 19 and 26) | replication + open scaling question | M8 | ~800 lines / 3–8 CPU-min per experiment, once the tuning grid is pruned |
+| T4 | Theorem plus verification code: every statistical query used by arXiv:2503.20879 can be emulated by classical membership queries (39, with 21 and 29) | theory + check | M1 | ~480–580 lines / ~10 CPU-min |
+| T3 | Matched-control generative benchmark at 6–10 qubits: does any structure-agnostic Born machine beat tuned lookup tables, chains and complex MPS? (31, with 03) | killing experiment | M4 | ~850 lines / ~2–4 CPU-hours over about 6–12 experiments |
 
 Also salvaged, as cheap notes rather than experiments:
 
@@ -168,16 +207,22 @@ Also salvaged, as cheap notes rather than experiments:
 ## Recommendation for Athmane (pick 1–3)
 
 **R1: quantum memory on quantum data (T1).**
-- *Why first:* it is the only shortlisted test where a quantum advantage is *expected to appear*
-  under fair rules. It is the positive side of the project, after three sessions of negative
-  results on classical data.
-- *What is new:* the exact finite-n crossover against the *strongest* classical learners. These are
-  derandomised mutually-unbiased-basis cycling (about 1.5× stronger than the baseline first
-  proposed) and an exactly optimal adaptive learner at n = 1, 2. The other new part is the noise
-  thresholds (memory, gate, readout) that a hardware demonstration would have to beat.
-- *A win teaches:* how small a system and how little noise are enough for a real learning
-  advantage.
-- *A loss teaches:* constants and noise erase the advantage at near-term scale.
+- *Why first:* T1 and T8 are the two shortlisted tests where a quantum advantage is *expected* under
+  fair rules. They are the positive side of the project, after three sessions of negative results
+  on classical data. T1 comes first because it is cheaper, and its open part is clear: the noise
+  thresholds.
+- *What is new:* the finite-n crossover under noise (interface, memory, gate, readout), against the
+  *strongest* single-copy learners:
+  - derandomised mutually-unbiased-basis cycling, about 1.5× stronger than the baseline first
+    proposed;
+  - an exactly optimal adaptive stabilizer-measurement learner at n = 1, 2;
+  - the rigorous lower bound.
+- *The noiseless arm:* it follows from eq. D38 of arXiv:2112.00778 and cannot lose. It is a
+  code-validation control, not evidence.
+- *A win teaches:* how much noise a real learning advantage tolerates at n ≤ 5. That is the target
+  a hardware demonstration must beat.
+- *A loss teaches:* the thresholds are so low (or adaptive single-copy learners so strong) that the
+  advantage needs error-corrected memory at near-term scale.
 
 **R2: calibrate our own benchmark (T6).**
 - *Why:* our negative result is only as strong as the benchmark's power to detect an advantage that
@@ -185,11 +230,13 @@ Also salvaged, as cheap notes rather than experiments:
 - *What it does:*
   - builds labels where the quantum kernel must win, at a realistic effect size (about +0.02 AUPRC
     with the projected kernel at s = 1, where g ≈ 13);
-  - checks that random labels produce no false win;
+  - checks that, on random labels, false wins occur no more often than the decision rule's nominal
+    rate (about 4.5 % per pair and direction; the reviewer computed 8.9 % per pair in total);
   - adds the cheap symmetry test (I-37).
 - *Power:* by the reviewer's calculation, the minimum detectable effect is about 0.017 AUPRC for
   the kernels.
-- *Cost:* the cheapest of the three; it reuses everything.
+- *Cost:* the cheapest to code, since it reuses the benchmark, but the heaviest in compute
+  (~100–120 CPU-min, split into short experiments).
 
 **R3: test a fresh high-profile claim (T9).**
 - *The claim:* Zhao, Zlokapa, Neven, Babbush et al. (arXiv:2604.07639, 2026) report a 4–6
@@ -201,10 +248,11 @@ Also salvaged, as cheap notes rather than experiments:
   simulated at matched budgets) are required.
 - *A loss for the claim* would move FIELD_MAP M1. So would a win.
 
-Claude's suggestion: **R1 then R2**. R1 is the most likely to give the project its first positive,
-well-founded result. R2 is cheap and makes every past and future negative result more credible. R3
-is the most valuable if Athmane wants to engage with current literature, and also the most
-expensive.
+Claude's suggestion: **R1 then R2**.
+- R1 is the most likely to give the project its first positive, well-founded result.
+- R2 is cheap to code and makes every past and future negative result more credible.
+- R3 is the most valuable if Athmane wants to engage with current literature. Until the review's
+  fixes are in, its verdict depends on accounting conventions.
 
 ## For the field map (next literature watch)
 

@@ -65,9 +65,14 @@ differs only in entanglement:
 - Huang et al.'s bound (arXiv:2011.01938) gives s_C ≤ g² s_Q. The prediction-error bound of the best
   classical kernel, usually the widest Gaussian tested, is therefore at most g times that of the
   quantum kernel, for any labels on these inputs.
-- With g ≤ 4.9, far below √N, this rules out a *large* quantum advantage on these inputs, though not
-  a modest one. This is why no quantum kernel can win by much here; the benchmark itself found no
-  win at all.
+  - Their summary says a small g guarantees the classical model "similar or better performance",
+    and our earlier text followed it. The bound itself is the precise statement.
+- With g ≤ 4.9, far below √N = 37, the bound excludes the √N-scale separation that a large provable
+  advantage needs.
+  - It does not exclude a gap of up to a factor of about g between the two error bounds. Such a gap
+    matters when the quantum bound is not already small.
+  - Whether a gap appears depends on the labels. On the fraud labels the benchmark found none (§1).
+    Checks with engineered labels are planned (ideas/round-01.md, T6).
 
 **5. Other points.**
 
@@ -87,7 +92,7 @@ projected kernels, hardware-efficient VQCs) on this real tabular task at 8 qubit
 
 - they have no edge over tuned classical models;
 - entanglement contributes nothing;
-- their kernel geometry leaves no room for a large advantage;
+- their kernel geometry leaves no room for a √N-scale separation;
 - measurement noise makes them worse.
 
 It says nothing about quantum data, problem-specific encodings or larger systems. Those are the

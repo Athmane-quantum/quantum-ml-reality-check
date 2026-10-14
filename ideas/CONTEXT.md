@@ -20,9 +20,10 @@ What is established:
    - No quantum model beats tuned classical models (RBF-SVM, gradient boosting, MLP).
    - Unentangled versions of all three quantum models score the same.
    - The geometric difference between the quantum kernels and classical Gaussian kernels is
-     g ≈ 1.3–4.9, while a large advantage needs g of order √N ≈ 37. By Huang et al.'s bound
-     (arXiv:2011.01938), the classical kernel's error bound is then at most g times the quantum
-     kernel's, for any labels on these inputs.
+     g ≈ 1.3–4.9, while a large provable advantage needs g of order √N ≈ 37. By Huang et al.'s
+     bound (arXiv:2011.01938), the classical kernel's error bound is then at most g times the
+     quantum kernel's, for any labels on these inputs. A few-fold gap between the bounds is not
+     excluded.
    - With realistic shot noise (100 to 10,000 shots per kernel entry), the fidelity kernel gets
      worse. Its small tuned bandwidth puts every kernel value near 1, so noise swamps the
      differences between values. The projected kernel holds up and needs about 300× fewer circuit
@@ -55,17 +56,23 @@ What is established:
       is told the generating process. Always compare against the access-matched classical learner.
     - Matchgate (free-fermion) circuits as a source of hardness: with product inputs they are
       classically simulable.
-    - GHZ vs product probes, Heisenberg-limited estimation, and two-copy discrimination of qubit
-      states: textbook, with no learning question left.
-    - Exponential sensing gaps on natural, low-dimensional signal families: a model-aware classical
-      learner gets within a constant factor; the exponential gap needs fine-tuned families
-      (arXiv:2504.21745).
-    - Symmetry in a quantum kernel's embedding as the source of advantage: a classical kernel
-      averaged over the same group gets the same gain.
-    - QCNN phase recognition at ≤ 10 qubits: its output is reproducible from two product
-      measurement bases at ≤ 2× the copies (arXiv:2109.05909).
-    - Small instances that a lookup table or brute force solves (≤ 10 qubits means ≤ 1024 inputs).
-    - For one fixed observable, quantum memory gives no advantage. The two-copy advantage of
+    - GHZ vs product probes: textbook. Heisenberg-limited Hamiltonian learning and few-copy
+      discrimination of qubit states: already proven or solved (K7). No learning question is left
+      in any of the three.
+    - Exponential sensing gaps on natural, low-dimensional signal families. When the family's
+      parameters do not change with the number of measurement windows, a model-aware classical
+      learner pays at most a polynomial price (arXiv:2504.21745, Prop. 2). The exponential gap
+      needs fine-tuned families, or parameters that scale with system size.
+    - Symmetry in a quantum kernel's embedding as the source of advantage. For a covariant
+      embedding, a classical kernel averaged over the same group is expected to get the same gain.
+      This rests on a projection lemma that is not yet written out or checked; idea I-37 tests it.
+    - Cong et al.'s QCNN for phase recognition (arXiv:1810.03787). Its output can be reproduced
+      from two product measurement bases with at most twice the copies, at any depth
+      (arXiv:2109.05909). Other QCNNs need a few more bases, still a constant at ≤ 10 qubits.
+    - Small instances that a lookup table or brute force solves. For bitstring inputs or outputs,
+      ≤ 10 qubits means ≤ 1024 strings.
+    - Quantum memory for a single fixed observable known in advance. Memory over copies gives no
+      exponential or large constant-factor advantage there. The two-copy advantage of
       arXiv:2112.00778 needs the observable to be announced after the copies are used.
 
 Our testing constraints: ideas must be testable with ≤ 10 qubits in exact classical simulation, on a

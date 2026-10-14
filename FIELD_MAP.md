@@ -86,10 +86,12 @@ whether an advantage is even possible on a dataset, and engineered datasets that
 simulation. No natural dataset is known to pass it.
 
 - Huang et al. show that classical ML **with data** can predict functions that are classically hard to
-  compute. They give prediction-error bounds and the "geometric difference" g between kernels. The
-  classical model's error bound is at most g times the quantum model's, so a small g rules out a
-  large quantum advantage for any labels (a modest one is not excluded). The fidelity quantum
-  kernel tends to the identity matrix as the effective dimension grows, so it generalises poorly. They introduce
+  compute. They give prediction-error bounds and the "geometric difference" g between kernels.
+  Since s_C ≤ g² s_Q, the classical model's error bound is at most g times the quantum model's, for
+  any labels. A large provable advantage therefore needs g of order √N. A small g excludes that, but
+  not a gap of up to a factor g between the two bounds. Their summary states this as classical ML
+  being guaranteed similar or better performance. The fidelity quantum kernel tends to the identity
+  matrix as the effective dimension grows, so it generalises poorly. They introduce
   *projected* quantum kernels. On **engineered** datasets the projected kernel beats the best tuned
   classical model by more than 20 % in accuracy (simulations up to 30 qubits), and this advantage
   shrinks as the training set grows. arXiv:2011.01938, *Nat. Commun.* **12**, 2631 (2021) `[F]`
@@ -105,9 +107,10 @@ simulation. No natural dataset is known to pass it.
   arXiv:2610.11360 (Oct 2026 preprint) `[A]`
 - **This repository (session 2).** On the fraud data, the geometric difference between each of our
   four tuned quantum kernels (entangled and unentangled) and classical kernels is g = 1.3–4.9 on
-  every seed, against √N = 37.4. That is far inside the "classical ML predicts similar or better"
-  region of Huang et al.'s test, for *any* labels on these inputs. The closest classical kernel is
-  usually a wide Gaussian (RESULTS.md).
+  every seed, against √N = 37.4. By Huang et al.'s bound, the classical error bound is then within a
+  factor g (≤ 4.9) of the quantum one, for *any* labels on these inputs. There is no room for the
+  √N-scale separation that a large provable advantage needs, but a gap of a few-fold between the
+  bounds is not excluded. The closest classical kernel is usually a wide Gaussian (RESULTS.md).
 
 ## Milestone 3: Exponential speed-ups from quantum linear algebra survive fair comparison
 

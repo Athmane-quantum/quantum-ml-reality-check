@@ -44,7 +44,9 @@ in the design before writing code.
     `default.mixed`.
   - Classical side: derandomised MUB stabilizer cycling, random global Clifford, an adaptive
     learner, and the rigorous lower bound (eq. D38 of arXiv:2112.00778, plus its noisy extension).
-  - Compute the exact adaptive optimum at n = 1, 2 by dynamic programming.
+  - Compute the exact optimal adaptive stabilizer-measurement learner at n = 1, 2 by dynamic
+    programming.
+  - Treat the noiseless arm as a code-validation control: it follows from eq. D38 and cannot lose.
   - Pre-register λ*(n) ≈ 0.29–0.33. Use noise grids fine enough to resolve it and N up to 2^15.
   - The memory, gate and readout noise thresholds are the experimental core.
 - **R2, T6 (ideas 33, 37): calibrate the benchmark.**

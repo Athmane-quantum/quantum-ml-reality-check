@@ -68,7 +68,7 @@ An idea is rejected if it trips one of these and offers no convincing way around
 | K5 | It ignores shot cost, noise or kernel concentration at the scale where it claims to win | arXiv:2208.11060, arXiv:2210.11505 |
 | K6 | It cannot be tested: not with ≤ 10 simulated qubits, and not by a precise theoretical statement | Repository rule (DESIGN.md) |
 | K7 | It has already been done, and the new version adds nothing testable | Verified arXiv search (step 3) |
-| K8 | Its advantage comes from giving the classical learner less access than is physically meaningful. Examples: random examples only, when the quantum example state presupposes an oracle that also answers classical queries; or a black-box classical learner when the quantum model is told the generating process. The test is against the access-matched classical learner | Added after round 1: arXiv:2610.02636 (access matching); [ideas/round-01.md](ideas/round-01.md), themes T4, T5, T9 |
+| K8 | Its advantage comes from giving the classical learner less access than is physically meaningful. Examples: random examples only, when the quantum example state presupposes an oracle that also answers classical queries; or a black-box classical learner when the quantum model is told the generating process. The test is against the access-matched classical learner | Added after round 1: arXiv:2610.02636 (access matching); [ideas/round-01.md](ideas/round-01.md), themes T4, T5 |
 
 **Green flags.** Learning from quantum data or quantum-enhanced sensing (M8). A problem-specific
 inductive bias that classical models cannot encode efficiently, such as a group or physical
@@ -89,7 +89,7 @@ Round 1 (2026-10-12 to 2026-10-14): 40 ideas. Full cards in [ideas/round-01-card
 | ID | Title | Proposed by | Milestone | Status | Decision note |
 |---|---|---|---|---|---|
 | I-20261012-01 | Periodic-neuron learning with quantum statistical queries | batch A | M1 | REJECTED | K6/K7: at d = 4 the concept class is tiny and the theorem is already proven; nothing to measure |
-| I-20261012-02 | Single-qubit sensing of weak classical signals | batch A | M8 | REJECTED (in review) | The exponential gap needs fine-tuned signal families; model-aware classical learners close it on natural ones (arXiv:2504.21745) |
+| I-20261012-02 | Single-qubit sensing of weak classical signals | batch A | M8 | REJECTED (in review) | The exponential gap needs fine-tuned signal families; on natural low-dimensional ones a model-aware classical learner pays at most a polynomial price (arXiv:2504.21745) |
 | I-20261012-03 | Trainable generative models on hard-to-sample distributions | batch A | M4 | MERGED into 31 | A lookup table defeats its success rule at 6 qubits |
 | I-20261012-04 | Symmetry-structured bandwidth for quantum kernels | batch A | M6 | REJECTED | K1/K4: group averaging is equally available to classical kernels; misattributed reference |
 | I-20261012-05 | Sample advantage in learning quantum observables | batch A | M1 | REJECTED | The cited separation is computational, not sample-based; at n = 4 a classical learner reproduces the features (K6/K7) |
@@ -107,7 +107,7 @@ Round 1 (2026-10-12 to 2026-10-14): 40 ideas. Full cards in [ideas/round-01-card
 | I-20261012-17 | Coherent-memory prediction of many observables | batch C | M8 | MERGED into 34 | Same mechanism; its strongest baselines and noise arm are kept |
 | I-20261012-18 | Single-qubit sensing of sparse temporal signals | batch C | M8 | MERGED into 02 | Same paper and mechanism; misreads what the paper's Fourier coefficients are |
 | I-20261012-19 | Ancilla-assisted classification of quantum channels | batch C | M8 | MERGED into 36 | Only its Pauli-channel core is sound |
-| I-20261012-20 | Learning observables from labelled dynamics | batch C | M1 | REJECTED | K8: any win comes from knowing U, which a classical learner given U uses too |
+| I-20261012-20 | Learning observables from labelled dynamics | batch C | M1 | REJECTED | K4/K6/K7 at triage (now also K8): any win comes from knowing U, which a classical learner given U uses too |
 | I-20261012-21 | Noise-robust periodic-neuron learning | batch C | M1 | MERGED into 39 | Its noise axis is kept |
 | I-20261012-22 | Symmetry-preserving classification of topological phases | batch C | M8 | MERGED into 35 | Same mechanism as 35 |
 | I-20261012-23 | Born-machine generalisation beyond moment matching | batch C | M4 | REJECTED | K7: benchmarks exist; arXiv:2608.31117 finds likelihood-trained classical models ahead |
@@ -122,9 +122,9 @@ Round 1 (2026-10-12 to 2026-10-14): 40 ideas. Full cards in [ideas/round-01-card
 | I-20261012-32 | Syndrome-conditioned logical-state classification | batch D | M9 | REJECTED | K7/K5: the maximum-likelihood lookup decoder is already optimal for Pauli noise |
 | I-20261012-33 | Positive control with engineered labels | Claude | M2, M6 | SHORTLISTED | Calibrate the benchmark at a realistic effect size (recommendation R2) |
 | I-20261012-34 | Two-copy vs single-copy learning at n ≤ 5 | Claude | M8 | SHORTLISTED | Certified finite-n table plus noise thresholds against the strongest single-copy learners (recommendation R1) |
-| I-20261012-35 | QCNN vs classical-shadow learners on phases | Claude | M8 | REJECTED (in review) | A QCNN's output is reproducible from two product bases at ≤ 2× the copies (arXiv:2109.05909); salvage as an exact ceiling note |
-| I-20261012-36 | Entangled-ancilla Pauli-channel learning | Claude | M8 | SHORTLISTED | Recast as an ε-scaling test (ε⁻² vs ε⁻⁴), a point left open by arXiv:2606.20535 |
-| I-20261012-37 | Is symmetry a quantum resource for kernels? | Claude | M6 | SHORTLISTED | Projection lemma plus a cheap killing experiment against group-averaged classical kernels (with R2) |
-| I-20261012-38 | Geometric difference on quantum-state inputs | Claude | M8 | SHORTLISTED | Low priority: a cheap diagnostic at matched copies; not separately reviewed |
+| I-20261012-35 | QCNN vs classical-shadow learners on phases | Claude | M8 | REJECTED (in review) | Cong et al.'s QCNN output is reproducible from two product bases at ≤ 2× the copies (arXiv:2109.05909); at n = 9 the reviewer's exact check gave 0.99–1.00× for QCNN-type measurements; salvage as an exact ceiling note |
+| I-20261012-36 | Entangled-ancilla Pauli-channel learning | Claude | M8 | SHORTLISTED | Recast as an ε-scaling test: Bell sampling ε⁻² vs the best known ancilla-free learners for sparse non-local Lindbladians ε⁻⁴ (arXiv:2607.23044, abstract), a point left open by arXiv:2606.20535 |
+| I-20261012-37 | Is symmetry a quantum resource for kernels? | Claude | M6 | SHORTLISTED (not reviewed) | Projection lemma plus a cheap killing experiment against group-averaged classical kernels (with R2); the T6 review covered only idea 33 |
+| I-20261012-38 | Geometric difference on quantum-state inputs | Claude | M8 | SHORTLISTED (low priority, not reviewed) | Cheap diagnostic at matched copies; listed among T7's best-version sources, but not in that design or its review |
 | I-20261012-39 | Classical baseline for periodic-neuron separations | Claude | M1 | SHORTLISTED | Theorem plus verification code: arXiv:2503.20879's queries are emulable by classical membership queries |
 | I-20261012-40 | Heisenberg-limited Hamiltonian learning | Claude | M8 | REJECTED | K7: proven, with matching lower bounds (arXiv:2210.03030, arXiv:2304.07172) |

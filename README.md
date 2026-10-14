@@ -46,10 +46,11 @@ Three controls explain this result:
   - fidelity kernel: 0.912 without vs 0.911 with;
   - projected kernel: 0.917 vs 0.913;
   - variational classifier with identical readouts: 0.902 vs 0.890.
-- **The geometry leaves no room for a large advantage.** The geometric difference of Huang et al.
-  between the tuned quantum kernels and classical Gaussian kernels is 1.3–4.9. By their bound, a
-  classical kernel's error bound is then at most a factor g worse than the quantum kernel's, for any
-  labels on this data. A large advantage would need g of order √N ≈ 37.
+- **The geometry leaves little room for an advantage.** The geometric difference of Huang et al.
+  between the tuned quantum kernels and classical Gaussian kernels is 1.3–4.9. By their bound, the
+  best classical kernel's error bound is then at most g times the quantum kernel's, for any labels
+  on this data. That excludes the √N-scale (≈ 37) separation a large provable advantage needs,
+  though not a gap of a few-fold between the bounds.
 - **Measurement noise makes it worse.** With realistic finite shots, the fidelity kernel drops to
   0.848 at 100 shots and stays below its exact value at 10,000 shots (0.888). The projected kernel
   holds up (0.917 at 10,000 shots) and needs about 300× fewer circuit executions.

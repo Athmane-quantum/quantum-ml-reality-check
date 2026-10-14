@@ -11,9 +11,9 @@ with training-error term (eq. F20 / L9)
 Following their Appendix L, we report the minimum g_gen over a list of classical kernels (linear and
 Gaussian) and regularisation strengths, keeping only pairs with g_tra < 0.045. The model complexity
 satisfies s_C <= g^2 s_Q, so the prediction-error bound of a classical kernel model is at most g
-times that of the quantum one, *for any labels*. When g is much smaller than sqrt(N) this rules out
-a large quantum prediction advantage, though not a modest one. Only a g of order sqrt(N) leaves room
-for a large advantage.
+times that of the quantum one, *for any labels*. A g much smaller than sqrt(N) excludes the
+sqrt(N)-scale separation that a large provable advantage needs, though not a gap of up to a factor g
+between the two bounds.
 """
 
 from __future__ import annotations
